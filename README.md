@@ -1,40 +1,161 @@
-# 一键 V2ray websocket + TLS
+# v2ray-modern（Phase 1A）
 
-一键就完事了，扫描二维码 或者 复制 vmess链接 无需关心复杂的V2ray 配置，websocket + tls 更安全，伪装更好。
+> 基于原一键 V2Ray 项目的现代化重构版本，面向长期维护与多协议扩展。
 
-* 自动生成 UUID （调用系统UUID库）
-* 默认使用 caddy 自动获取证书
-* 自动生成 安卓 v2rayNG vmess链接
-* 自动生成 iOS shadowrocket vmess链接
-* 自动生成 iOS 二维码
+本项目从原仓库 fork 而来，在保持“一键部署体验”的基础上，进行系统性重构，并引入 Xray 及多传输模式支持。
 
-## 使用方法
+---
 
- * 提前安装好docker 
- ```
-  curl -fsSL https://get.docker.com -o get-docker.sh  && \
-  bash get-docker.sh
- ```
- * 解析好域名 确认 你的域名正确解析到了你安装的这台服务器
- * 会占用 443 和 80 端口请提前确认没有跑其他的业务 （ lsof -i:80 和 lsof -i:443 能查看）
- * 请将下面命令中的 YOURDOMAIN.COM（域名）替换成自己的域名（此IP解析的域名）！！！
+## 🎯 Phase 1A 目标
+
+本阶段同时推进三条分支：
+
+| 分支 | 目标 |
+|------|------|
+| main | 保持上游兼容，稳定可用 |
+| refactor-base | 架构重构（不涉及协议） |
+| v2-ws-tls | Xray + VLESS + WS + TLS |
+| v2-reality | Xray + VLESS + REALITY |
+
+---
+
+## 🧱 项目定位
+
+从：
+
+> 一键脚本
+
+升级为：
+
+> 可维护的部署系统 + 可扩展的协议框架
+
+---
+
+## 📁 项目结构（refactor-base）
 
 ```
-sudo docker run -d --rm --name v2ray -p 443:443 -p 80:80 -v $HOME/.caddy:/root/.caddy  pengchujin/v2ray_ws:0.11 YOURDOMAIN.COM V2RAY_WS && sleep 3s && sudo docker logs v2ray
-```
-* 如果你想指定固定 uuid 的话， 0890b53a-e3d4-4726-bd2b-52574e8588c4 这个 uuid 改为你自己的，https://www.uuidgenerator.net/ 这个网站可以生成随机 uuid。
-```
-sudo docker run -d --rm --name v2ray -p 443:443 -p 80:80 -v $HOME/.caddy:/root/.caddy  pengchujin/v2ray_ws:0.11 YOURDOMAIN.COM V2RAY_WS 0890b53a-e3d4-4726-bd2b-52574e8588c4 && sleep 3s && sudo docker logs v2ray
+
+.
+├── compose.yaml
+├── .env.example
+├── scripts/
+│   ├── preflight-check.sh
+│   ├── render-config.sh
+│   ├── start.sh
+│   ├── status.sh
+│   └── export-client.sh
+├── templates/
+│   ├── core.json.tpl
+│   └── transport.tpl
+├── data/
+│   ├── runtime/
+│   └── exports/
+└── doc/
+
+````
+
+---
+
+## 🚀 使用方式
+
+### 1. 克隆项目
+
+```bash
+git clone https://github.com/longcrawfish/v2ray-modern.git
+cd v2ray-modern
+````
+
+---
+
+### 2. 切换分支
+
+```bash
+# 底座
+git checkout refactor-base
+
+# WS + TLS 版本
+git checkout v2-ws-tls
+
+# REALITY 版本
+git checkout v2-reality
 ```
 
-* 命令执行完会显示链接信息，如果想查看链接信息，执行下面命令即可
-```
-sudo docker logs v2ray
-```
-* 想停止这个 docker 和服务
-```
-sudo docker stop v2ray
+---
+
+### 3. 配置环境变量
+
+```bash
+cp .env.example .env
 ```
 
-有问题欢迎提issue， 感谢大家。参考了 caddy docker 和 v2ray 的 dockerfile 感谢！
+编辑：
 
+```env
+DOMAIN=your.domain.com
+UUID=your-uuid
+PROFILE=ws-tls   # ws-tls / reality
+```
+
+---
+
+### 4. 执行检查
+
+```bash
+bash scripts/preflight-check.sh
+```
+
+---
+
+### 5. 渲染配置
+
+```bash
+bash scripts/render-config.sh
+```
+
+---
+
+### 6. 启动服务
+
+```bash
+docker compose up -d
+```
+
+---
+
+### 7. 查看状态
+
+```bash
+bash scripts/status.sh
+```
+
+---
+
+## ⚙️ Profile 说明
+
+| Profile | 分支         | 描述              |
+| ------- | ---------- | --------------- |
+| ws-tls  | v2-ws-tls  | WebSocket + TLS |
+| reality | v2-reality | REALITY         |
+
+---
+
+## ⚠️ 注意事项
+
+* 80/443 端口必须未被占用
+* 域名必须解析到 VPS
+* UUID 必须合法
+* REALITY 模式不依赖传统 TLS 证书
+
+---
+
+## 🔜 后续规划
+
+* Phase 2：多实例支持
+* Phase 3：客户端配置导出（Clash / JSON / QR）
+* Phase 4：Web UI 管理
+
+---
+
+## 📜 License
+
+MIT
