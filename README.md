@@ -26,6 +26,12 @@
 2. 在 `v2-ws-tls` 填充 WS + TLS transport 实现
 3. 在 `v2-reality` 填充 Reality transport 实现
 
+推荐路径：
+
+- 想理解项目结构：先看 `refactor-base`
+- 想优先部署可理解、接近传统使用体验的版本：优先看 `v2-ws-tls`
+- 想部署不依赖 WebSocket / Caddy / 传统证书的版本：看 `v2-reality`
+
 ---
 
 ## 当前结构
@@ -87,6 +93,12 @@ git clone https://github.com/longcrawfish/v2ray-modern.git
 cd v2ray-modern
 git checkout refactor-base
 ```
+
+对于不同用户，建议这样选择：
+
+- 底座开发者：`refactor-base`
+- 普通部署用户：`v2-ws-tls`
+- 进阶部署用户：`v2-reality`
 
 ### 2. 初始化环境变量
 
@@ -185,6 +197,14 @@ bash scripts/export-client.sh
 
 ---
 
+## Phase 1A 收尾建议
+
+- 作为后续默认开发主线，建议优先以 `refactor-base` 为基线继续推进
+- 作为第一个更适合面向用户的可交付候选，建议优先考虑 `v2-ws-tls`
+- `v2-reality` 适合作为独立 transport 方向继续完善，但暂不建议替代底座主线
+
+---
+
 ## 文档
 
 - [Phase 1A 审计结论](doc/phase1a-audit.md)
@@ -192,6 +212,8 @@ bash scripts/export-client.sh
 - [Phase 1A 底座结构说明](doc/phase1a-refactor-structure.md)
 - [Phase 1A 参数系统与模板渲染框架](doc/phase1a-config-system.md)
 - [Phase 1A 运行时与启动流程](doc/phase1a-runtime.md)
+- [Phase 1A 总结](doc/phase1a-summary.md)
+- [Phase 2 待办](doc/phase2-todo.md)
 
 ---
 
