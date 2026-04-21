@@ -1,84 +1,115 @@
 # Phase 1A Flow
 
-## 🚀 总流程
+## 总流程
 
-```
-User
+```text
+.env
 ↓
 preflight-check
 ↓
 render-config
 ↓
-docker compose up
+docker compose up -d
 ↓
 status
+↓
+export-client
 ```
 
 ---
 
-## 🔀 分支流程
+## 公共流程说明
 
-### refactor-base
+### 1. 参数输入
 
-```
+- 统一从 `.env` 加载
+- `PROFILE` 负责选择 transport
+
+### 2. 模板选择
+
+- 先渲染 `templates/core/`
+- 再根据 `PROFILE` 选择 `templates/transport/<profile>/`
+- 最后选择 `templates/proxy/<profile>/`
+
+### 3. runtime 生成
+
+- 所有渲染结果进入 `data/runtime/`
+
+### 4. 服务启动
+
+- `compose.yaml` 使用 runtime 配置启动对应服务
+
+### 5. 状态与导出
+
+- `status.sh` 输出状态、路径、日志和排障提示
+- `export-client.sh` 输出客户端连接信息
+
+---
+
+## 分支流程
+
+### `refactor-base`
+
+```text
 .env
 ↓
-template render
+common template render
 ↓
-basic runtime config
+runtime skeleton
+↓
+compose base entry
 ```
 
----
+### `v2-ws-tls`
 
-### v2-ws-tls
-
-```
+```text
 .env
 ↓
-ws-tls profile
+profile=ws-tls
 ↓
-xray config
+xray runtime
 ↓
-caddy / tls
+caddy runtime
+↓
+443 with domain and TLS
 ```
 
----
+### `v2-reality`
 
-### v2-reality
-
-```
+```text
 .env
 ↓
-reality profile
+profile=reality
 ↓
-xray config
+reality key material
 ↓
-direct 443
+xray reality runtime
+↓
+direct reality transport
 ```
 
 ---
 
-## 🔁 Profile 流程
+## Profile 流程
 
-```
+```text
 PROFILE
 ↓
-select template
+select profile template directories
 ↓
-render config
+render runtime config
 ↓
-start service
+start profile-specific services
 ```
 
 ---
 
-## 🔮 后续扩展
+## 后续扩展方向
 
-```
+```text
+more profiles
+↓
 multi-node
 ↓
-dashboard
-↓
-api
+dashboard / api
 ```
-

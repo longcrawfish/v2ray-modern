@@ -1,34 +1,47 @@
 # v2ray-modern（Phase 1A）
 
-> 面向长期维护的部署底座重构项目。
+> 一个面向长期维护的部署系统重构项目。
 
-当前仓库处于 Phase 1A transport 分支落地阶段。目标是在 `refactor-base` 公共底座之上，分别实现独立的 `ws-tls` 与 `reality` transport。
+项目目标不是继续叠加一键脚本，而是建立一个可维护、可扩展、支持多 transport 的部署框架。Phase 1A 通过三条分支分别承载公共底座、`ws-tls` 实现和 `reality` 实现。
 
 ---
 
-## 分支策略
+## 项目定位
 
-| 分支 | 角色 |
-|------|------|
-| `master` | 兼容基线，保留旧实现与迁移参考 |
-| `refactor-base` | 公共底座分支，只做结构、参数、模板、compose、CLI |
-| `v2-ws-tls` | 在底座之上实现 WS + TLS transport |
-| `v2-reality` | 在底座之上实现 Reality transport |
+从：
+
+- 单体脚本
+- 单协议配置
+- 长 `docker run` 启动
+
+演进为：
+
+- profile 驱动
+- template 渲染
+- compose-first
+- 原子脚本
+- transport 分离
+
+---
+
+## 分支关系
+
+| 分支 | 定位 | 适用场景 |
+|------|------|----------|
+| `master` | 兼容基线，保留旧实现与迁移参考 | 需要对照老项目行为时 |
+| `refactor-base` | 公共底座，只提供参数、模板、compose、脚本框架 | 做底座演进、准备新 transport 时 |
+| `v2-ws-tls` | 基于底座实现 `Xray + VLESS + WS + TLS` | 需要“域名 + 443 + 反向代理”体验时 |
+| `v2-reality` | 基于底座实现 `Xray + VLESS + REALITY` | 不希望依赖 WebSocket、反向代理和传统证书时 |
 
 约束：
-- `refactor-base` 不引入 Xray / VLESS / REALITY 具体逻辑
-- `refactor-base` 不写死 `ws`、`reality`、固定路径或代理依赖
-- transport 相关实现只进入对应分支
 
-当前建议的开发顺序：
-
-1. 在 `refactor-base` 完成公共底座
-2. 在 `v2-ws-tls` 填充 WS + TLS transport 实现
-3. 在 `v2-reality` 填充 Reality transport 实现
+- `refactor-base` 不引入协议细节
+- transport-specific logic 只进入对应分支
+- `v2-reality` 不继承 `v2-ws-tls` 的 `ws path`、Caddy、证书依赖
 
 ---
 
-## 当前结构
+## 基础结构
 
 ```text
 .
@@ -51,198 +64,138 @@
 └── doc/
 ```
 
-说明：
-- `scripts/` 只承载原子化流程，不直接写协议配置正文
-- `templates/` 提供模板目录骨架，当前仅为占位内容
-- `data/` 统一承接运行时产物、导出产物和日志目录
-- `compose.yaml` 已替代旧式长 `docker run` 作为第一入口
+公共约定：
+
+- `scripts/`：原子脚本入口
+- `templates/`：模板源文件
+- `data/runtime/`：渲染结果
+- `data/exports/`：导出结果
+- `data/logs/`：日志目录
 
 ---
 
-## 从旧命令到 compose-first
+## 基础使用方式
 
-旧项目依赖类似以下长命令直接拉起容器：
-
-```bash
-sudo docker run -d --rm --name v2ray -p 443:443 -p 80:80 -v $HOME/.caddy:/root/.caddy pengchujin/v2ray_ws:0.11 YOURDOMAIN.COM V2RAY_WS
-```
-
-Phase 1A 第一轮改为：
-
-```bash
-cp .env.example .env
-bash scripts/start.sh
-```
-
-这一步的意义是先统一启动入口、配置入口和目录契约。本轮不要求最终协议配置可用。
-
----
-
-## 使用方式
-
-### 1. 克隆并切换分支
+### 1. 克隆仓库
 
 ```bash
 git clone https://github.com/longcrawfish/v2ray-modern.git
 cd v2ray-modern
+```
+
+### 2. 切换目标分支
+
+```bash
+git checkout refactor-base
+# 或
+git checkout v2-ws-tls
+# 或
 git checkout v2-reality
 ```
 
-### 2. 初始化环境变量
+### 3. 准备环境变量
 
 ```bash
 cp .env.example .env
 ```
 
-示例：
-
-```env
-PROFILE=reality
-DOMAIN=example.com
-UUID=00000000-0000-4000-8000-000000000000
-NODE_NAME=default-node
-XRAY_PORT=443
-TLS_MODE=reality
-XRAY_IMAGE=teddysun/xray:latest
-XRAY_LOG_LEVEL=warning
-REALITY_SERVER_NAME=www.cloudflare.com
-REALITY_DEST=www.cloudflare.com:443
-REALITY_PRIVATE_KEY=REPLACE_WITH_PRIVATE_KEY
-REALITY_PUBLIC_KEY=REPLACE_WITH_PUBLIC_KEY
-REALITY_SHORT_ID=0123abcd
-REALITY_FINGERPRINT=chrome
-REALITY_SPIDER_X=/
-REALITY_FLOW=xtls-rprx-vision
-```
-
-### 3. 执行基础检查
+### 4. 标准执行流程
 
 ```bash
 bash scripts/preflight-check.sh
-```
-
-### 4. 渲染底座配置
-
-```bash
 bash scripts/render-config.sh
-```
-
-### 5. 启动 compose 服务
-
-```bash
 bash scripts/start.sh
-```
-
-启动脚本会自动执行：
-
-1. 基础预检
-2. 模板渲染
-3. `docker compose up -d`
-
-### 6. 查看状态
-
-```bash
 bash scripts/status.sh
-```
-
-状态命令会输出：
-
-- 容器状态
-- `data/logs/` 日志目录
-- `data/runtime/` 渲染配置目录
-- `data/exports/` 导出目录
-- 常用排障命令提示
-
-### 7. 生成导出占位文件
-
-```bash
 bash scripts/export-client.sh
 ```
 
-对于 `v2-reality`，该命令会导出可直接使用的 VLESS REALITY 链接。
+说明：
+
+- `preflight-check.sh` 负责环境和参数检查
+- `render-config.sh` 负责按 `PROFILE` 渲染模板
+- `start.sh` 负责标准启动
+- `status.sh` 负责状态与排障信息输出
+- `export-client.sh` 负责导出客户端连接信息
 
 ---
 
-## 脚本职责
+## 分支适用场景
 
-| 脚本 | 职责 |
-|------|------|
-| `scripts/preflight-check.sh` | 检查 Docker / Compose 和公共参数 |
-| `scripts/render-config.sh` | 将模板渲染到 `data/runtime/` |
-| `scripts/start.sh` | 串联检查、渲染和 compose 启动 |
-| `scripts/status.sh` | 查看运行时文件与服务状态 |
-| `scripts/export-client.sh` | 预留客户端导出流程 |
+### `refactor-base`
 
----
+适合：
 
-## 参数与模板系统
+- 做底座演进
+- 调整参数系统
+- 重构模板框架
+- 引入新 transport 前先搭公共能力
 
-- 统一从 `.env` 加载参数，缺失时直接报错
-- `PROFILE` 当前作为模板路由键，允许值为 `ws-tls`、`reality`
-- `templates/core/` 存放公共模板
-- `templates/transport/<profile>/` 存放 transport 插槽模板
-- `templates/proxy/<profile>/` 存放 proxy 插槽模板
-- `render-config.sh` 只负责变量注入和目录路由，不负责写协议实现
+不适合：
 
----
+- 直接写 `ws-tls` 或 `reality` 的协议细节
 
-## `v2-reality` 使用说明
+### `v2-ws-tls`
 
-适用场景：
+适合：
 
-- 不希望依赖反向代理层
-- 不希望依赖传统 TLS 证书签发
-- 需要单端口、较直接的 Reality 部署方式
+- 需要域名入口
+- 需要 443 暴露体验
+- 接受反向代理层
+- 需要常规 VLESS + WS + TLS 方案
 
-与 `v2-ws-tls` 的定位差异：
+### `v2-reality`
 
-- `v2-ws-tls` 面向“域名 + 443 + 反向代理 + TLS”体验
-- `v2-reality` 面向“无反向代理、无 WebSocket、无传统证书”的独立 transport
+适合：
 
-运行结构：
-
-- 仅使用 `xray` 服务
-- 配置渲染到 `data/runtime/transport-xray.json`
-- 不使用 `WS_PATH`
-- 不依赖 Caddy
-
-关键输出：
-
-- Xray 配置：`data/runtime/transport-xray.json`
-- 客户端配置摘要：`data/runtime/transport-client.json`
-- 客户端导出：`data/exports/vless-reality.txt`
-- 生成密钥文件：`data/runtime/reality-generated.env`
-
-Reality 密钥生成：
-
-```bash
-bash scripts/generate-reality-keys.sh
-```
+- 不想依赖 WebSocket
+- 不想依赖反向代理层
+- 不想依赖传统证书签发
+- 希望使用独立的 Reality transport
 
 ---
 
-## 当前边界
+## 文档索引
 
-- `v2-reality` 已实现 Xray + VLESS + REALITY
-- 不继承 `ws-tls` 的 WS 路径、Caddy 和证书依赖
-- 配置体系仍复用 `refactor-base` 的参数加载、模板渲染和脚本框架
-- 旧 `Dockerfile`、`caddy.sh`、`v2ray.json`、`v2ray.js` 仍保留用于迁移参考
-
----
-
-## 文档
-
+- [分支策略](doc/branch-strategy.md)
+- [Profile 设计](doc/profile-design.md)
+- [Phase 1A 范围](doc/phase1a-scope.md)
+- [Phase 1A 流程](doc/phase1a-flow.md)
 - [Phase 1A 审计结论](doc/phase1a-audit.md)
 - [Phase 1A 重构备注](doc/phase1a-refactor-notes.md)
 - [Phase 1A 底座结构说明](doc/phase1a-refactor-structure.md)
 - [Phase 1A 参数系统与模板渲染框架](doc/phase1a-config-system.md)
 - [Phase 1A 运行时与启动流程](doc/phase1a-runtime.md)
+- [Phase 1A `v2-ws-tls` 分支说明](doc/phase1a-ws-tls.md)
 - [Phase 1A `v2-reality` 分支说明](doc/phase1a-reality.md)
 
 ---
 
-## 后续方向
+## 核心概念
 
-- 将旧脚本中的配置正文迁移为真正可复用模板
-- 为底座补齐统一参数加载和错误提示
-- 在 transport 分支中分别接入具体协议实现
+### profile
+
+用于选择 transport 实现的配置槽位，例如 `ws-tls`、`reality`。
+
+### template
+
+位于 `templates/` 的源配置文件，通过变量渲染生成运行时配置。
+
+### runtime
+
+位于 `data/runtime/` 的渲染产物，是容器启动时真正使用的配置文件。
+
+### export
+
+位于 `data/exports/` 的导出结果，例如客户端链接或配置摘要。
+
+### transport-specific logic
+
+仅属于某个 transport 分支的逻辑，例如 WebSocket 路径、Reality 密钥、Caddy 依赖、客户端导出格式等。
+
+---
+
+## 当前边界
+
+- `refactor-base` 负责公共框架
+- `v2-ws-tls` 与 `v2-reality` 各自独立实现 transport
+- 旧 `Dockerfile`、`caddy.sh`、`v2ray.json`、`v2ray.js` 仍保留用于迁移参考
