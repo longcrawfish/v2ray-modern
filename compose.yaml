@@ -1,19 +1,27 @@
 name: v2ray-modern
 
 services:
-  core:
+  v2ray-modern:
     image: alpine:3.20
-    container_name: v2ray-modern-core
+    container_name: v2ray-modern
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      SERVICE_ROLE: refactor-base
+      PROFILE: ${PROFILE}
+      DOMAIN: ${DOMAIN}
+      NODE_NAME: ${NODE_NAME:-default-node}
+      XRAY_PORT: ${XRAY_PORT:-443}
+      RUNTIME_DIR: /app/runtime
+      LOG_DIR: /app/logs
+      EXPORT_DIR: /app/exports
     command:
       - /bin/sh
       - -lc
       - |
-        echo "v2ray-modern refactor-base bootstrap container"
-        echo "PROFILE=${PROFILE:-unset}"
-        echo "DOMAIN=${DOMAIN:-unset}"
+        mkdir -p /app/runtime /app/logs /app/exports
+        echo "$(date -Iseconds) bootstrap start profile=${PROFILE:-unset} domain=${DOMAIN:-unset}" >> /app/logs/bootstrap.log
         trap 'exit 0' TERM INT
         while true; do sleep 3600; done
     volumes:
@@ -22,3 +30,17 @@ services:
       - ./data/logs:/app/logs
     ports:
       - "${XRAY_PORT:-443}:443"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - test -f /app/runtime/core-manifest.json
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    labels:
+      io.v2ray-modern.branch: refactor-base
+      io.v2ray-modern.profile: ${PROFILE}
+      io.v2ray-modern.runtime_dir: /app/runtime
+      io.v2ray-modern.log_dir: /app/logs
+      io.v2ray-modern.export_dir: /app/exports

@@ -20,6 +20,12 @@
 - `refactor-base` 不写死 `ws`、`reality`、固定路径或代理依赖
 - transport 相关实现只进入对应分支
 
+当前建议的开发顺序：
+
+1. 在 `refactor-base` 完成公共底座
+2. 在 `v2-ws-tls` 填充 WS + TLS transport 实现
+3. 在 `v2-reality` 填充 Reality transport 实现
+
 ---
 
 ## 当前结构
@@ -118,11 +124,25 @@ bash scripts/render-config.sh
 bash scripts/start.sh
 ```
 
+启动脚本会自动执行：
+
+1. 基础预检
+2. 模板渲染
+3. `docker compose up -d`
+
 ### 6. 查看状态
 
 ```bash
 bash scripts/status.sh
 ```
+
+状态命令会输出：
+
+- 容器状态
+- `data/logs/` 日志目录
+- `data/runtime/` 渲染配置目录
+- `data/exports/` 导出目录
+- 常用排障命令提示
 
 ### 7. 生成导出占位文件
 
@@ -159,7 +179,8 @@ bash scripts/export-client.sh
 
 - 本轮只完成公共底座骨架
 - 模板目录已建立，且支持按 profile 选择占位模板
-- compose 已成为统一入口，但当前服务仍是底座占位容器
+- compose 已成为统一入口，服务名和日志目录已经标准化
+- 当前服务仍是底座占位容器，不代表具体协议可用
 - 旧 `Dockerfile`、`caddy.sh`、`v2ray.json`、`v2ray.js` 仍保留用于迁移参考
 
 ---
@@ -170,6 +191,7 @@ bash scripts/export-client.sh
 - [Phase 1A 重构备注](doc/phase1a-refactor-notes.md)
 - [Phase 1A 底座结构说明](doc/phase1a-refactor-structure.md)
 - [Phase 1A 参数系统与模板渲染框架](doc/phase1a-config-system.md)
+- [Phase 1A 运行时与启动流程](doc/phase1a-runtime.md)
 
 ---
 

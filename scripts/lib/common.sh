@@ -8,6 +8,8 @@ RUNTIME_DIR="${ROOT_DIR}/data/runtime"
 EXPORT_DIR="${ROOT_DIR}/data/exports"
 LOG_DIR="${ROOT_DIR}/data/logs"
 TEMPLATE_DIR="${ROOT_DIR}/templates"
+COMPOSE_FILE="${ROOT_DIR}/compose.yaml"
+SERVICE_NAME="v2ray-modern"
 
 SUPPORTED_PROFILES="ws-tls reality"
 
@@ -55,6 +57,24 @@ load_env_file() {
   TLS_MODE=${TLS_MODE:-}
 
   export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE
+}
+
+load_env_if_present() {
+  if [ -f "${ENV_FILE}" ]; then
+    # shellcheck disable=SC1090
+    . "${ENV_FILE}"
+    PROFILE=${PROFILE:-}
+    DOMAIN=${DOMAIN:-}
+    UUID=${UUID:-}
+    WS_PATH=${WS_PATH:-}
+    NODE_NAME=${NODE_NAME:-}
+    XRAY_PORT=${XRAY_PORT:-}
+    TLS_MODE=${TLS_MODE:-}
+    export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE
+    return 0
+  fi
+
+  return 1
 }
 
 require_non_empty() {
@@ -157,6 +177,11 @@ detect_compose_command() {
   fi
 
   fail "缺少 docker compose / docker-compose。"
+}
+
+compose() {
+  detect_compose_command
+  ${COMPOSE_CMD} -f "${COMPOSE_FILE}" "$@"
 }
 
 validate_base_env() {
