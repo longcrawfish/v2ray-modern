@@ -9,7 +9,7 @@ EXPORT_DIR="${ROOT_DIR}/data/exports"
 LOG_DIR="${ROOT_DIR}/data/logs"
 TEMPLATE_DIR="${ROOT_DIR}/templates"
 COMPOSE_FILE="${ROOT_DIR}/compose.yaml"
-SERVICE_NAME="v2ray-modern"
+PRIMARY_SERVICE_NAME="caddy"
 
 SUPPORTED_PROFILES="ws-tls reality"
 
@@ -55,8 +55,17 @@ load_env_file() {
   NODE_NAME=${NODE_NAME:-}
   XRAY_PORT=${XRAY_PORT:-}
   TLS_MODE=${TLS_MODE:-}
+  XRAY_IMAGE=${XRAY_IMAGE:-}
+  CADDY_IMAGE=${CADDY_IMAGE:-}
+  TLS_EMAIL=${TLS_EMAIL:-}
+  TLS_CA=${TLS_CA:-}
+  CADDY_HTTP_PORT=${CADDY_HTTP_PORT:-}
+  CADDY_HTTPS_PORT=${CADDY_HTTPS_PORT:-}
+  CADDY_ADMIN_PORT=${CADDY_ADMIN_PORT:-}
+  XRAY_LOG_LEVEL=${XRAY_LOG_LEVEL:-}
+  ENABLE_FAKE_SITE=${ENABLE_FAKE_SITE:-}
 
-  export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE
+  export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE XRAY_IMAGE CADDY_IMAGE TLS_EMAIL TLS_CA CADDY_HTTP_PORT CADDY_HTTPS_PORT CADDY_ADMIN_PORT XRAY_LOG_LEVEL ENABLE_FAKE_SITE
 }
 
 load_env_if_present() {
@@ -70,7 +79,16 @@ load_env_if_present() {
     NODE_NAME=${NODE_NAME:-}
     XRAY_PORT=${XRAY_PORT:-}
     TLS_MODE=${TLS_MODE:-}
-    export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE
+    XRAY_IMAGE=${XRAY_IMAGE:-}
+    CADDY_IMAGE=${CADDY_IMAGE:-}
+    TLS_EMAIL=${TLS_EMAIL:-}
+    TLS_CA=${TLS_CA:-}
+    CADDY_HTTP_PORT=${CADDY_HTTP_PORT:-}
+    CADDY_HTTPS_PORT=${CADDY_HTTPS_PORT:-}
+    CADDY_ADMIN_PORT=${CADDY_ADMIN_PORT:-}
+    XRAY_LOG_LEVEL=${XRAY_LOG_LEVEL:-}
+    ENABLE_FAKE_SITE=${ENABLE_FAKE_SITE:-}
+    export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE XRAY_IMAGE CADDY_IMAGE TLS_EMAIL TLS_CA CADDY_HTTP_PORT CADDY_HTTPS_PORT CADDY_ADMIN_PORT XRAY_LOG_LEVEL ENABLE_FAKE_SITE
     return 0
   fi
 
@@ -110,6 +128,18 @@ validate_domain() {
   require_non_empty "DOMAIN" "${DOMAIN}"
 }
 
+validate_ws_path() {
+  require_non_empty "WS_PATH" "${WS_PATH}"
+
+  case "${WS_PATH}" in
+    /*)
+      ;;
+    *)
+      fail "WS_PATH 必须以 / 开头。"
+      ;;
+  esac
+}
+
 validate_uuid_if_present() {
   if [ -z "${UUID}" ]; then
     return 0
@@ -125,10 +155,13 @@ validate_uuid_if_present() {
 }
 
 validate_numeric_port() {
-  if [ -n "${XRAY_PORT}" ]; then
-    case "${XRAY_PORT}" in
+  var_name=$1
+  var_value=$2
+
+  if [ -n "${var_value}" ]; then
+    case "${var_value}" in
       *[!0-9]*)
-        fail "XRAY_PORT 必须是数字。"
+        fail "${var_name} 必须是数字。"
         ;;
     esac
   fi
@@ -187,8 +220,12 @@ compose() {
 validate_base_env() {
   validate_profile
   validate_domain
+  validate_ws_path
   validate_uuid_if_present
-  validate_numeric_port
+  validate_numeric_port "XRAY_PORT" "${XRAY_PORT}"
+  validate_numeric_port "CADDY_HTTP_PORT" "${CADDY_HTTP_PORT}"
+  validate_numeric_port "CADDY_HTTPS_PORT" "${CADDY_HTTPS_PORT}"
+  validate_numeric_port "CADDY_ADMIN_PORT" "${CADDY_ADMIN_PORT}"
 }
 
 template_profile_dir() {
@@ -213,6 +250,15 @@ s|{{WS_PATH}}|${WS_PATH}|g
 s|{{NODE_NAME}}|${NODE_NAME}|g
 s|{{XRAY_PORT}}|${XRAY_PORT}|g
 s|{{TLS_MODE}}|${TLS_MODE}|g
+s|{{XRAY_IMAGE}}|${XRAY_IMAGE}|g
+s|{{CADDY_IMAGE}}|${CADDY_IMAGE}|g
+s|{{TLS_EMAIL}}|${TLS_EMAIL}|g
+s|{{TLS_CA}}|${TLS_CA}|g
+s|{{CADDY_HTTP_PORT}}|${CADDY_HTTP_PORT}|g
+s|{{CADDY_HTTPS_PORT}}|${CADDY_HTTPS_PORT}|g
+s|{{CADDY_ADMIN_PORT}}|${CADDY_ADMIN_PORT}|g
+s|{{XRAY_LOG_LEVEL}}|${XRAY_LOG_LEVEL}|g
+s|{{ENABLE_FAKE_SITE}}|${ENABLE_FAKE_SITE}|g
 EOF
 }
 

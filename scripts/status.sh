@@ -12,7 +12,7 @@ if ! load_env_if_present; then
 fi
 
 echo "[INFO] 服务信息"
-echo "service=${SERVICE_NAME}"
+echo "primary_service=${PRIMARY_SERVICE_NAME}"
 echo "compose=${COMPOSE_CMD}"
 echo
 
@@ -25,6 +25,7 @@ echo
 echo "[INFO] 日志目录"
 echo "${LOG_DIR}"
 find "${LOG_DIR}" -maxdepth 1 -type f | sort || true
+find "${LOG_DIR}" -mindepth 1 -maxdepth 2 -type f | sort || true
 
 echo "[INFO] 运行时目录"
 find "${RUNTIME_DIR}" -maxdepth 1 -type f | sort || true
@@ -36,9 +37,9 @@ find "${EXPORT_DIR}" -maxdepth 1 -type f | sort || true
 echo
 echo "[INFO] 常用排障命令"
 echo "查看 compose 日志:"
-echo "  ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs --tail=100 ${SERVICE_NAME}"
+echo "  ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs --tail=100 caddy xray"
 echo "查看实时日志:"
-echo "  ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs -f ${SERVICE_NAME}"
+echo "  ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs -f caddy xray"
 echo "进入运行目录核对渲染文件:"
 echo "  ls -la ${RUNTIME_DIR}"
 echo "检查导出目录:"

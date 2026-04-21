@@ -17,6 +17,7 @@ assert_profile_templates
 transport_dir=$(template_profile_dir transport)
 proxy_dir=$(template_profile_dir proxy)
 
+mkdir -p "${LOG_DIR}/xray" "${LOG_DIR}/caddy" "${LOG_DIR}/caddy/data" "${LOG_DIR}/caddy/config"
 find "${RUNTIME_DIR}" -maxdepth 1 -type f ! -name '.gitkeep' -delete
 
 render_template_dir "${core_dir}" "core"

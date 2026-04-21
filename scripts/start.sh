@@ -11,7 +11,7 @@ set -eu
 compose up -d
 
 echo "[OK] compose 服务已启动"
-echo "服务名: ${SERVICE_NAME}"
+echo "主要入口服务: ${PRIMARY_SERVICE_NAME}"
 echo "运行目录: ${RUNTIME_DIR}"
 echo "日志目录: ${LOG_DIR}"
 echo "使用以下命令查看状态:"

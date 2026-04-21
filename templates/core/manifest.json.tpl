@@ -6,10 +6,15 @@
   "node_name": "{{NODE_NAME}}",
   "xray_port": "{{XRAY_PORT}}",
   "tls_mode": "{{TLS_MODE}}",
+  "tls_email": "{{TLS_EMAIL}}",
   "template_slots": {
     "transport": "templates/transport/{{PROFILE}}",
     "proxy": "templates/proxy/{{PROFILE}}"
   },
+  "services": [
+    "xray",
+    "caddy"
+  ],
   "notes": [
     "当前文件仅为底座占位产物",
     "具体协议和 transport 逻辑由后续分支实现"

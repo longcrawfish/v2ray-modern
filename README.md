@@ -85,7 +85,7 @@ bash scripts/start.sh
 ```bash
 git clone https://github.com/longcrawfish/v2ray-modern.git
 cd v2ray-modern
-git checkout refactor-base
+git checkout v2-ws-tls
 ```
 
 ### 2. 初始化环境变量
@@ -102,8 +102,17 @@ DOMAIN=example.com
 UUID=00000000-0000-4000-8000-000000000000
 WS_PATH=/transport-path
 NODE_NAME=default-node
-XRAY_PORT=443
-TLS_MODE=auto
+XRAY_PORT=10000
+TLS_MODE=acme
+TLS_EMAIL=admin@example.com
+TLS_CA=https://acme-v02.api.letsencrypt.org/directory
+CADDY_HTTP_PORT=80
+CADDY_HTTPS_PORT=443
+CADDY_ADMIN_PORT=2019
+XRAY_IMAGE=teddysun/xray:latest
+CADDY_IMAGE=caddy:2.8-alpine
+XRAY_LOG_LEVEL=warning
+ENABLE_FAKE_SITE=true
 ```
 
 ### 3. 执行基础检查
@@ -150,6 +159,8 @@ bash scripts/status.sh
 bash scripts/export-client.sh
 ```
 
+对于 `v2-ws-tls`，该命令会导出可直接使用的 VLESS URL。
+
 ---
 
 ## 脚本职责
@@ -175,12 +186,45 @@ bash scripts/export-client.sh
 
 ---
 
+## `v2-ws-tls` 使用说明
+
+适用场景：
+
+- 希望保持“域名 + 443 + 一键启动”体验
+- 可以使用反向代理层获取自动 TLS
+- 需要基于 VLESS + WS + TLS 的常规部署方案
+
+分支结构：
+
+- `xray` 负责 VLESS + WS
+- `caddy` 负责 TLS 和 WebSocket 反代
+- 所有配置均由模板渲染到 `data/runtime/`
+
+启动步骤：
+
+```bash
+cp .env.example .env
+bash scripts/start.sh
+bash scripts/status.sh
+bash scripts/export-client.sh
+```
+
+关键输出：
+
+- Xray 配置：`data/runtime/transport-xray.json`
+- Caddy 配置：`data/runtime/proxy-Caddyfile`
+- 静态站点：`data/runtime/proxy-index.html`
+- 客户端导出：`data/exports/vless-ws-tls.txt`
+
+---
+
 ## 当前边界
 
 - 本轮只完成公共底座骨架
 - 模板目录已建立，且支持按 profile 选择占位模板
 - compose 已成为统一入口，服务名和日志目录已经标准化
-- 当前服务仍是底座占位容器，不代表具体协议可用
+- `v2-ws-tls` 分支已实现 Xray + VLESS + WS + TLS
+- `reality` 仍留在独立分支实现
 - 旧 `Dockerfile`、`caddy.sh`、`v2ray.json`、`v2ray.js` 仍保留用于迁移参考
 
 ---
@@ -192,6 +236,7 @@ bash scripts/export-client.sh
 - [Phase 1A 底座结构说明](doc/phase1a-refactor-structure.md)
 - [Phase 1A 参数系统与模板渲染框架](doc/phase1a-config-system.md)
 - [Phase 1A 运行时与启动流程](doc/phase1a-runtime.md)
+- [Phase 1A `v2-ws-tls` 分支说明](doc/phase1a-ws-tls.md)
 
 ---
 
