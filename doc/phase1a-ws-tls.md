@@ -159,6 +159,16 @@ bash scripts/status.sh
 - 核对 `transport-xray.json` 里的 `wsSettings.path`
 - 核对 `data/exports/vless-ws-tls.txt` 中的 `path`
 
+### 6. Xray 容器报 `exec: "run": executable file not found`
+
+症状：
+- `bash scripts/start.sh` 在拉起 `xray` 容器时失败
+- Docker 报错 `exec: "run": executable file not found in $PATH`
+
+排查：
+- 确认 `compose.yaml` 中 `xray` 服务显式使用 `xray run -c /etc/xray/config.json`
+- 不要只把 `run` 当成容器启动命令传入，否则 Docker 会把它当成可执行文件
+
 ---
 
 ## 排障步骤
