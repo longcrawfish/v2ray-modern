@@ -9,7 +9,8 @@ EXPORT_DIR="${ROOT_DIR}/data/exports"
 LOG_DIR="${ROOT_DIR}/data/logs"
 TEMPLATE_DIR="${ROOT_DIR}/templates"
 COMPOSE_FILE="${ROOT_DIR}/compose.yaml"
-SERVICE_NAME="v2ray-modern"
+SERVICE_NAME="xray"
+GENERATED_REALITY_ENV="${RUNTIME_DIR}/reality-generated.env"
 
 SUPPORTED_PROFILES="ws-tls reality"
 
@@ -34,6 +35,18 @@ fail() {
   exit 1
 }
 
+reality_material_missing() {
+  material=$1
+
+  case "${material}" in
+    ""|REPLACE_WITH_*)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
     fail "缺少命令: $1"
@@ -47,7 +60,19 @@ load_env_file() {
 
   # shellcheck disable=SC1090
   . "${ENV_FILE}"
+  load_generated_reality_env
+  normalize_env
+  export_loaded_env
+}
 
+load_generated_reality_env() {
+  if [ -f "${GENERATED_REALITY_ENV}" ]; then
+    # shellcheck disable=SC1090
+    . "${GENERATED_REALITY_ENV}"
+  fi
+}
+
+normalize_env() {
   PROFILE=${PROFILE:-}
   DOMAIN=${DOMAIN:-}
   UUID=${UUID:-}
@@ -55,22 +80,36 @@ load_env_file() {
   NODE_NAME=${NODE_NAME:-}
   XRAY_PORT=${XRAY_PORT:-}
   TLS_MODE=${TLS_MODE:-}
+  XRAY_IMAGE=${XRAY_IMAGE:-}
+  XRAY_LOG_LEVEL=${XRAY_LOG_LEVEL:-}
+  REALITY_SERVER_NAME=${REALITY_SERVER_NAME:-}
+  REALITY_DEST=${REALITY_DEST:-}
+  REALITY_PRIVATE_KEY=${REALITY_PRIVATE_KEY:-}
+  REALITY_PUBLIC_KEY=${REALITY_PUBLIC_KEY:-}
+  REALITY_SHORT_ID=${REALITY_SHORT_ID:-}
+  REALITY_FINGERPRINT=${REALITY_FINGERPRINT:-}
+  REALITY_SPIDER_X=${REALITY_SPIDER_X:-}
+  REALITY_FLOW=${REALITY_FLOW:-}
+}
 
-  export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE
+export_loaded_env() {
+  export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE XRAY_IMAGE XRAY_LOG_LEVEL REALITY_SERVER_NAME REALITY_DEST REALITY_PRIVATE_KEY REALITY_PUBLIC_KEY REALITY_SHORT_ID REALITY_FINGERPRINT REALITY_SPIDER_X REALITY_FLOW
 }
 
 load_env_if_present() {
   if [ -f "${ENV_FILE}" ]; then
     # shellcheck disable=SC1090
     . "${ENV_FILE}"
-    PROFILE=${PROFILE:-}
-    DOMAIN=${DOMAIN:-}
-    UUID=${UUID:-}
-    WS_PATH=${WS_PATH:-}
-    NODE_NAME=${NODE_NAME:-}
-    XRAY_PORT=${XRAY_PORT:-}
-    TLS_MODE=${TLS_MODE:-}
-    export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE
+    load_generated_reality_env
+    normalize_env
+    export_loaded_env
+    return 0
+  fi
+
+  if [ -f "${GENERATED_REALITY_ENV}" ]; then
+    load_generated_reality_env
+    normalize_env
+    export_loaded_env
     return 0
   fi
 
@@ -108,6 +147,12 @@ validate_profile() {
 
 validate_domain() {
   require_non_empty "DOMAIN" "${DOMAIN}"
+
+  case "${DOMAIN}" in
+    http://*|https://*|*/*)
+      fail "DOMAIN 只能填写纯域名或 IP，不能包含协议头或路径。"
+      ;;
+  esac
 }
 
 validate_uuid_if_present() {
@@ -125,10 +170,13 @@ validate_uuid_if_present() {
 }
 
 validate_numeric_port() {
-  if [ -n "${XRAY_PORT}" ]; then
-    case "${XRAY_PORT}" in
+  var_name=$1
+  var_value=$2
+
+  if [ -n "${var_value}" ]; then
+    case "${var_value}" in
       *[!0-9]*)
-        fail "XRAY_PORT 必须是数字。"
+        fail "${var_name} 必须是数字。"
         ;;
     esac
   fi
@@ -188,7 +236,54 @@ validate_base_env() {
   validate_profile
   validate_domain
   validate_uuid_if_present
-  validate_numeric_port
+  validate_numeric_port "XRAY_PORT" "${XRAY_PORT}"
+
+  case "${PROFILE}" in
+    ws-tls)
+      validate_ws_tls_env
+      ;;
+    reality)
+      validate_reality_env
+      ;;
+  esac
+}
+
+validate_ws_tls_env() {
+  require_non_empty "WS_PATH" "${WS_PATH}"
+}
+
+validate_reality_env() {
+  require_non_empty "REALITY_SERVER_NAME" "${REALITY_SERVER_NAME}"
+  require_non_empty "REALITY_DEST" "${REALITY_DEST}"
+  require_non_empty "REALITY_FINGERPRINT" "${REALITY_FINGERPRINT}"
+  require_non_empty "REALITY_FLOW" "${REALITY_FLOW}"
+  require_non_empty "XRAY_IMAGE" "${XRAY_IMAGE}"
+
+  case "${REALITY_DEST}" in
+    *:*)
+      ;;
+    *)
+      fail "REALITY_DEST 必须为 host:port 格式。"
+      ;;
+  esac
+
+  if [ -n "${REALITY_SHORT_ID}" ]; then
+    case "${REALITY_SHORT_ID}" in
+      REPLACE_WITH_*)
+        ;;
+      *[!0-9a-fA-F]*)
+        fail "REALITY_SHORT_ID 必须是十六进制字符串。"
+        ;;
+    esac
+  fi
+
+  if reality_material_missing "${REALITY_PRIVATE_KEY}" || reality_material_missing "${REALITY_PUBLIC_KEY}" || reality_material_missing "${REALITY_SHORT_ID}"; then
+    if command -v docker >/dev/null 2>&1; then
+      log_warn "REALITY 密钥材料不完整，将在渲染阶段尝试生成。"
+    else
+      fail "REALITY_PRIVATE_KEY / REALITY_PUBLIC_KEY / REALITY_SHORT_ID 缺失，且当前环境无法自动生成。"
+    fi
+  fi
 }
 
 template_profile_dir() {
@@ -213,6 +308,16 @@ s|{{WS_PATH}}|${WS_PATH}|g
 s|{{NODE_NAME}}|${NODE_NAME}|g
 s|{{XRAY_PORT}}|${XRAY_PORT}|g
 s|{{TLS_MODE}}|${TLS_MODE}|g
+s|{{XRAY_IMAGE}}|${XRAY_IMAGE}|g
+s|{{XRAY_LOG_LEVEL}}|${XRAY_LOG_LEVEL}|g
+s|{{REALITY_SERVER_NAME}}|${REALITY_SERVER_NAME}|g
+s|{{REALITY_DEST}}|${REALITY_DEST}|g
+s|{{REALITY_PRIVATE_KEY}}|${REALITY_PRIVATE_KEY}|g
+s|{{REALITY_PUBLIC_KEY}}|${REALITY_PUBLIC_KEY}|g
+s|{{REALITY_SHORT_ID}}|${REALITY_SHORT_ID}|g
+s|{{REALITY_FINGERPRINT}}|${REALITY_FINGERPRINT}|g
+s|{{REALITY_SPIDER_X}}|${REALITY_SPIDER_X}|g
+s|{{REALITY_FLOW}}|${REALITY_FLOW}|g
 EOF
 }
 

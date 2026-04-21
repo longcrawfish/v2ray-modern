@@ -11,13 +11,20 @@ proxy_dir=""
 
 ensure_directories
 load_env_file
+if [ "${PROFILE}" = "reality" ]; then
+  if reality_material_missing "${REALITY_PRIVATE_KEY}" || reality_material_missing "${REALITY_PUBLIC_KEY}" || reality_material_missing "${REALITY_SHORT_ID}"; then
+    "${ROOT_DIR}/scripts/generate-reality-keys.sh"
+    load_env_file
+  fi
+fi
 validate_base_env
 assert_profile_templates
 
 transport_dir=$(template_profile_dir transport)
 proxy_dir=$(template_profile_dir proxy)
 
-find "${RUNTIME_DIR}" -maxdepth 1 -type f ! -name '.gitkeep' -delete
+mkdir -p "${LOG_DIR}/xray"
+find "${RUNTIME_DIR}" -maxdepth 1 -type f ! -name '.gitkeep' ! -name 'reality-generated.env' -delete
 
 render_template_dir "${core_dir}" "core"
 render_template_dir "${transport_dir}" "transport"

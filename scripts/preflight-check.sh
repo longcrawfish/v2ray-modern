@@ -10,12 +10,15 @@ require_command docker
 detect_compose_command
 load_env_file
 validate_base_env
-check_port_available 80
-check_port_available 443
+check_port_available "${XRAY_PORT}"
 assert_profile_templates
 
 log_info "docker compose 可用: ${COMPOSE_CMD}"
 log_info "PROFILE=${PROFILE}"
 log_info "DOMAIN=${DOMAIN}"
-log_info "端口 80/443 空闲"
+log_info "端口 ${XRAY_PORT} 空闲"
+if [ "${PROFILE}" = "reality" ]; then
+  log_info "REALITY_SERVER_NAME=${REALITY_SERVER_NAME}"
+  log_info "REALITY_DEST=${REALITY_DEST}"
+fi
 echo "[OK] 基础检查完成"

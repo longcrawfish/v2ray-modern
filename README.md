@@ -2,7 +2,7 @@
 
 > 面向长期维护的部署底座重构项目。
 
-当前仓库处于 Phase 1A 第一轮底座重构阶段。目标不是直接扩展协议，而是先把老的一键部署项目拆成可维护的目录结构、参数系统、模板系统和 compose-first 启动链路。
+当前仓库处于 Phase 1A transport 分支落地阶段。目标是在 `refactor-base` 公共底座之上，分别实现独立的 `ws-tls` 与 `reality` transport。
 
 ---
 
@@ -85,7 +85,7 @@ bash scripts/start.sh
 ```bash
 git clone https://github.com/longcrawfish/v2ray-modern.git
 cd v2ray-modern
-git checkout refactor-base
+git checkout v2-reality
 ```
 
 ### 2. 初始化环境变量
@@ -97,13 +97,22 @@ cp .env.example .env
 示例：
 
 ```env
-PROFILE=ws-tls
+PROFILE=reality
 DOMAIN=example.com
 UUID=00000000-0000-4000-8000-000000000000
-WS_PATH=/transport-path
 NODE_NAME=default-node
 XRAY_PORT=443
-TLS_MODE=auto
+TLS_MODE=reality
+XRAY_IMAGE=teddysun/xray:latest
+XRAY_LOG_LEVEL=warning
+REALITY_SERVER_NAME=www.cloudflare.com
+REALITY_DEST=www.cloudflare.com:443
+REALITY_PRIVATE_KEY=REPLACE_WITH_PRIVATE_KEY
+REALITY_PUBLIC_KEY=REPLACE_WITH_PUBLIC_KEY
+REALITY_SHORT_ID=0123abcd
+REALITY_FINGERPRINT=chrome
+REALITY_SPIDER_X=/
+REALITY_FLOW=xtls-rprx-vision
 ```
 
 ### 3. 执行基础检查
@@ -150,6 +159,8 @@ bash scripts/status.sh
 bash scripts/export-client.sh
 ```
 
+对于 `v2-reality`，该命令会导出可直接使用的 VLESS REALITY 链接。
+
 ---
 
 ## 脚本职责
@@ -175,12 +186,46 @@ bash scripts/export-client.sh
 
 ---
 
+## `v2-reality` 使用说明
+
+适用场景：
+
+- 不希望依赖反向代理层
+- 不希望依赖传统 TLS 证书签发
+- 需要单端口、较直接的 Reality 部署方式
+
+与 `v2-ws-tls` 的定位差异：
+
+- `v2-ws-tls` 面向“域名 + 443 + 反向代理 + TLS”体验
+- `v2-reality` 面向“无反向代理、无 WebSocket、无传统证书”的独立 transport
+
+运行结构：
+
+- 仅使用 `xray` 服务
+- 配置渲染到 `data/runtime/transport-xray.json`
+- 不使用 `WS_PATH`
+- 不依赖 Caddy
+
+关键输出：
+
+- Xray 配置：`data/runtime/transport-xray.json`
+- 客户端配置摘要：`data/runtime/transport-client.json`
+- 客户端导出：`data/exports/vless-reality.txt`
+- 生成密钥文件：`data/runtime/reality-generated.env`
+
+Reality 密钥生成：
+
+```bash
+bash scripts/generate-reality-keys.sh
+```
+
+---
+
 ## 当前边界
 
-- 本轮只完成公共底座骨架
-- 模板目录已建立，且支持按 profile 选择占位模板
-- compose 已成为统一入口，服务名和日志目录已经标准化
-- 当前服务仍是底座占位容器，不代表具体协议可用
+- `v2-reality` 已实现 Xray + VLESS + REALITY
+- 不继承 `ws-tls` 的 WS 路径、Caddy 和证书依赖
+- 配置体系仍复用 `refactor-base` 的参数加载、模板渲染和脚本框架
 - 旧 `Dockerfile`、`caddy.sh`、`v2ray.json`、`v2ray.js` 仍保留用于迁移参考
 
 ---
@@ -192,6 +237,7 @@ bash scripts/export-client.sh
 - [Phase 1A 底座结构说明](doc/phase1a-refactor-structure.md)
 - [Phase 1A 参数系统与模板渲染框架](doc/phase1a-config-system.md)
 - [Phase 1A 运行时与启动流程](doc/phase1a-runtime.md)
+- [Phase 1A `v2-reality` 分支说明](doc/phase1a-reality.md)
 
 ---
 
