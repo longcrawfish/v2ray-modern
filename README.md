@@ -12,7 +12,7 @@
 
 | 分支 | 目标 |
 |------|------|
-| main | 保持上游兼容，稳定可用 |
+| master | 保持上游兼容，稳定可用 |
 | refactor-base | 架构重构（不涉及协议） |
 | v2-ws-tls | Xray + VLESS + WS + TLS |
 | v2-reality | Xray + VLESS + REALITY |
