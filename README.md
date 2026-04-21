@@ -1,40 +1,30 @@
 # v2ray-modern（Phase 1A）
 
-> 基于原一键 V2Ray 项目的现代化重构版本，面向长期维护与多协议扩展。
+> 面向长期维护的部署底座重构项目。
 
-本项目从原仓库 fork 而来，在保持“一键部署体验”的基础上，进行系统性重构，并引入 Xray 及多传输模式支持。
+当前仓库处于 Phase 1A 第一轮底座重构阶段。目标不是直接扩展协议，而是先把老的一键部署项目拆成可维护的目录结构、参数系统、模板系统和 compose-first 启动链路。
 
 ---
 
-## 🎯 Phase 1A 目标
+## 分支策略
 
-本阶段同时推进三条分支：
-
-| 分支 | 目标 |
+| 分支 | 角色 |
 |------|------|
-| master | 保持上游兼容，稳定可用 |
-| refactor-base | 架构重构（不涉及协议） |
-| v2-ws-tls | Xray + VLESS + WS + TLS |
-| v2-reality | Xray + VLESS + REALITY |
+| `master` | 兼容基线，保留旧实现与迁移参考 |
+| `refactor-base` | 公共底座分支，只做结构、参数、模板、compose、CLI |
+| `v2-ws-tls` | 在底座之上实现 WS + TLS transport |
+| `v2-reality` | 在底座之上实现 Reality transport |
+
+约束：
+- `refactor-base` 不引入 Xray / VLESS / REALITY 具体逻辑
+- `refactor-base` 不写死 `ws`、`reality`、固定路径或代理依赖
+- transport 相关实现只进入对应分支
 
 ---
 
-## 🧱 项目定位
+## 当前结构
 
-从：
-
-> 一键脚本
-
-升级为：
-
-> 可维护的部署系统 + 可扩展的协议框架
-
----
-
-## 📁 项目结构（refactor-base）
-
-```
-
+```text
 .
 ├── compose.yaml
 ├── .env.example
@@ -45,117 +35,134 @@
 │   ├── status.sh
 │   └── export-client.sh
 ├── templates/
-│   ├── core.json.tpl
-│   └── transport.tpl
+│   ├── core/
+│   ├── transport/
+│   └── proxy/
 ├── data/
 │   ├── runtime/
-│   └── exports/
+│   ├── exports/
+│   └── logs/
 └── doc/
+```
 
-````
+说明：
+- `scripts/` 只承载原子化流程，不直接写协议配置正文
+- `templates/` 提供模板目录骨架，当前仅为占位内容
+- `data/` 统一承接运行时产物、导出产物和日志目录
+- `compose.yaml` 已替代旧式长 `docker run` 作为第一入口
 
 ---
 
-## 🚀 使用方式
+## 从旧命令到 compose-first
 
-### 1. 克隆项目
+旧项目依赖类似以下长命令直接拉起容器：
+
+```bash
+sudo docker run -d --rm --name v2ray -p 443:443 -p 80:80 -v $HOME/.caddy:/root/.caddy pengchujin/v2ray_ws:0.11 YOURDOMAIN.COM V2RAY_WS
+```
+
+Phase 1A 第一轮改为：
+
+```bash
+cp .env.example .env
+bash scripts/start.sh
+```
+
+这一步的意义是先统一启动入口、配置入口和目录契约。本轮不要求最终协议配置可用。
+
+---
+
+## 使用方式
+
+### 1. 克隆并切换分支
 
 ```bash
 git clone https://github.com/longcrawfish/v2ray-modern.git
 cd v2ray-modern
-````
-
----
-
-### 2. 切换分支
-
-```bash
-# 底座
 git checkout refactor-base
-
-# WS + TLS 版本
-git checkout v2-ws-tls
-
-# REALITY 版本
-git checkout v2-reality
 ```
 
----
-
-### 3. 配置环境变量
+### 2. 初始化环境变量
 
 ```bash
 cp .env.example .env
 ```
 
-编辑：
+示例：
 
 ```env
-DOMAIN=your.domain.com
-UUID=your-uuid
-PROFILE=ws-tls   # ws-tls / reality
+PROFILE=base
+DOMAIN=example.com
+UUID=00000000-0000-4000-8000-000000000000
+WS_PATH=/replace-me
+NODE_NAME=default-node
+XRAY_PORT=443
+TLS_MODE=auto
 ```
 
----
-
-### 4. 执行检查
+### 3. 执行基础检查
 
 ```bash
 bash scripts/preflight-check.sh
 ```
 
----
-
-### 5. 渲染配置
+### 4. 渲染底座配置
 
 ```bash
 bash scripts/render-config.sh
 ```
 
----
-
-### 6. 启动服务
+### 5. 启动 compose 服务
 
 ```bash
-docker compose up -d
+bash scripts/start.sh
 ```
 
----
-
-### 7. 查看状态
+### 6. 查看状态
 
 ```bash
 bash scripts/status.sh
 ```
 
----
+### 7. 生成导出占位文件
 
-## ⚙️ Profile 说明
-
-| Profile | 分支         | 描述              |
-| ------- | ---------- | --------------- |
-| ws-tls  | v2-ws-tls  | WebSocket + TLS |
-| reality | v2-reality | REALITY         |
+```bash
+bash scripts/export-client.sh
+```
 
 ---
 
-## ⚠️ 注意事项
+## 脚本职责
 
-* 80/443 端口必须未被占用
-* 域名必须解析到 VPS
-* UUID 必须合法
-* REALITY 模式不依赖传统 TLS 证书
-
----
-
-## 🔜 后续规划
-
-* Phase 2：多实例支持
-* Phase 3：客户端配置导出（Clash / JSON / QR）
-* Phase 4：Web UI 管理
+| 脚本 | 职责 |
+|------|------|
+| `scripts/preflight-check.sh` | 检查 Docker / Compose 和公共参数 |
+| `scripts/render-config.sh` | 将模板渲染到 `data/runtime/` |
+| `scripts/start.sh` | 串联检查、渲染和 compose 启动 |
+| `scripts/status.sh` | 查看运行时文件与服务状态 |
+| `scripts/export-client.sh` | 预留客户端导出流程 |
 
 ---
 
-## 📜 License
+## 当前边界
 
-MIT
+- 本轮只完成公共底座骨架
+- 模板目录已建立，但内容仍为占位
+- compose 已成为统一入口，但当前服务仍是底座占位容器
+- 旧 `Dockerfile`、`caddy.sh`、`v2ray.json`、`v2ray.js` 仍保留用于迁移参考
+
+---
+
+## 文档
+
+- [Phase 1A 审计结论](doc/phase1a-audit.md)
+- [Phase 1A 重构备注](doc/phase1a-refactor-notes.md)
+- [Phase 1A 底座结构说明](doc/phase1a-refactor-structure.md)
+
+---
+
+## 后续方向
+
+- 将旧脚本中的配置正文迁移为真正可复用模板
+- 为底座补齐统一参数加载和错误提示
+- 在 transport 分支中分别接入具体协议实现

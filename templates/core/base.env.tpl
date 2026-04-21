@@ -1,0 +1,8 @@
+# Refactor-base runtime variables
+PROFILE={{PROFILE}}
+DOMAIN={{DOMAIN}}
+UUID={{UUID}}
+WS_PATH={{WS_PATH}}
+NODE_NAME={{NODE_NAME}}
+XRAY_PORT={{XRAY_PORT}}
+TLS_MODE={{TLS_MODE}}
