@@ -53,6 +53,30 @@ require_command() {
   fi
 }
 
+docker_usable() {
+  if ! command -v docker >/dev/null 2>&1; then
+    return 1
+  fi
+
+  docker version >/dev/null 2>&1
+}
+
+can_generate_reality_material() {
+  if command -v xray >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if command -v openssl >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if docker_usable; then
+    return 0
+  fi
+
+  return 1
+}
+
 load_env_file() {
   if [ ! -f "${ENV_FILE}" ]; then
     fail "未找到 .env，请先执行 'cp .env.example .env' 并填写必要参数。"
@@ -278,11 +302,12 @@ validate_reality_env() {
   fi
 
   if reality_material_missing "${REALITY_PRIVATE_KEY}" || reality_material_missing "${REALITY_PUBLIC_KEY}" || reality_material_missing "${REALITY_SHORT_ID}"; then
-    if command -v docker >/dev/null 2>&1; then
+    if can_generate_reality_material; then
       log_warn "REALITY 密钥材料不完整，将在渲染阶段尝试生成。"
-    else
-      fail "REALITY_PRIVATE_KEY / REALITY_PUBLIC_KEY / REALITY_SHORT_ID 缺失，且当前环境无法自动生成。"
+      return 0
     fi
+
+    fail "REALITY_PRIVATE_KEY / REALITY_PUBLIC_KEY / REALITY_SHORT_ID 缺失，且当前环境无法自动生成。可用生成方式: 本地 xray、openssl 或可访问的 Docker。"
   fi
 }
 

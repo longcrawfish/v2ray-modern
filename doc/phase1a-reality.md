@@ -71,7 +71,13 @@
 bash scripts/generate-reality-keys.sh
 ```
 
-脚本会使用 `XRAY_IMAGE` 调用 `xray x25519` 生成密钥，并把结果写入：
+脚本会按以下顺序尝试生成密钥：
+
+- 本地 `xray x25519`
+- `openssl` 生成 X25519 密钥并转换为 Xray 兼容格式
+- 可访问的 Docker + `XRAY_IMAGE`
+
+生成结果会写入：
 
 - `data/runtime/reality-generated.env`
 
@@ -105,5 +111,5 @@ bash scripts/export-client.sh
 ## 已知限制
 
 - 当前为单节点、单入站实现
-- 密钥自动生成依赖 Docker 和 `XRAY_IMAGE`
+- 密钥自动生成依赖以下任一方式可用：本地 `xray`、`openssl`、可访问的 Docker + `XRAY_IMAGE`
 - 尚未覆盖多用户、多入站、多路由策略
