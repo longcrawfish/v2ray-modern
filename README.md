@@ -91,10 +91,10 @@ cp .env.example .env
 示例：
 
 ```env
-PROFILE=base
+PROFILE=ws-tls
 DOMAIN=example.com
 UUID=00000000-0000-4000-8000-000000000000
-WS_PATH=/replace-me
+WS_PATH=/transport-path
 NODE_NAME=default-node
 XRAY_PORT=443
 TLS_MODE=auto
@@ -144,10 +144,21 @@ bash scripts/export-client.sh
 
 ---
 
+## 参数与模板系统
+
+- 统一从 `.env` 加载参数，缺失时直接报错
+- `PROFILE` 当前作为模板路由键，允许值为 `ws-tls`、`reality`
+- `templates/core/` 存放公共模板
+- `templates/transport/<profile>/` 存放 transport 插槽模板
+- `templates/proxy/<profile>/` 存放 proxy 插槽模板
+- `render-config.sh` 只负责变量注入和目录路由，不负责写协议实现
+
+---
+
 ## 当前边界
 
 - 本轮只完成公共底座骨架
-- 模板目录已建立，但内容仍为占位
+- 模板目录已建立，且支持按 profile 选择占位模板
 - compose 已成为统一入口，但当前服务仍是底座占位容器
 - 旧 `Dockerfile`、`caddy.sh`、`v2ray.json`、`v2ray.js` 仍保留用于迁移参考
 
@@ -158,6 +169,7 @@ bash scripts/export-client.sh
 - [Phase 1A 审计结论](doc/phase1a-audit.md)
 - [Phase 1A 重构备注](doc/phase1a-refactor-notes.md)
 - [Phase 1A 底座结构说明](doc/phase1a-refactor-structure.md)
+- [Phase 1A 参数系统与模板渲染框架](doc/phase1a-config-system.md)
 
 ---
 

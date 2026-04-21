@@ -37,12 +37,14 @@
 
 - 检查 `docker` / `docker compose`
 - 检查公共参数是否具备基础可读性
+- 检查 80/443 端口占用
 - 预创建运行目录
 
 ### `scripts/render-config.sh`
 
 - 从 `.env` 或环境变量装载公共参数
 - 将模板渲染到 `data/runtime/`
+- 根据 `PROFILE` 选择 transport / proxy 模板目录
 - 只生成底座占位配置，不写协议字段
 
 ### `scripts/start.sh`
@@ -74,12 +76,14 @@
 ### `templates/transport/`
 
 - 预留 transport 片段位置
-- 由后续 `v2-ws-tls` / `v2-reality` 分支填充
+- 当前已经按 profile 预留目录
+- 由后续 `v2-ws-tls` / `v2-reality` 分支填充正文
 
 ### `templates/proxy/`
 
 - 预留代理层模板位置
-- 当前只定义接口占位，不假定必须存在某类代理
+- 当前已经按 profile 预留目录
+- 只定义接口占位，不假定必须存在某类代理
 
 ---
 

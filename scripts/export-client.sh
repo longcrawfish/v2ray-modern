@@ -2,24 +2,14 @@
 
 set -eu
 
-ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-ENV_FILE="${ROOT_DIR}/.env"
-EXPORT_FILE="${ROOT_DIR}/data/exports/client-placeholder.txt"
+# shellcheck disable=SC1091
+. "$(CDPATH= cd -- "$(dirname "$0")" && pwd)/lib/common.sh"
 
-PROFILE=${PROFILE:-base}
-DOMAIN=${DOMAIN:-example.com}
-NODE_NAME=${NODE_NAME:-default-node}
+EXPORT_FILE="${EXPORT_DIR}/client-placeholder.txt"
 
-if [ -f "${ENV_FILE}" ]; then
-  # shellcheck disable=SC1090
-  . "${ENV_FILE}"
-fi
-
-PROFILE=${PROFILE:-base}
-DOMAIN=${DOMAIN:-example.com}
-NODE_NAME=${NODE_NAME:-default-node}
-
-mkdir -p "${ROOT_DIR}/data/exports"
+ensure_directories
+load_env_file
+validate_base_env
 
 cat > "${EXPORT_FILE}" <<EOF
 Phase 1A refactor-base placeholder export

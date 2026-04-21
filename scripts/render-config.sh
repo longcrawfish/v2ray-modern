@@ -2,55 +2,29 @@
 
 set -eu
 
-ROOT_DIR=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
-ENV_FILE="${ROOT_DIR}/.env"
-RUNTIME_DIR="${ROOT_DIR}/data/runtime"
+# shellcheck disable=SC1091
+. "$(CDPATH= cd -- "$(dirname "$0")" && pwd)/lib/common.sh"
 
-PROFILE=${PROFILE:-base}
-DOMAIN=${DOMAIN:-example.com}
-UUID=${UUID:-00000000-0000-4000-8000-000000000000}
-WS_PATH=${WS_PATH:-/replace-me}
-NODE_NAME=${NODE_NAME:-default-node}
-XRAY_PORT=${XRAY_PORT:-443}
-TLS_MODE=${TLS_MODE:-auto}
+core_dir="${TEMPLATE_DIR}/core"
+transport_dir=""
+proxy_dir=""
 
-if [ -f "${ENV_FILE}" ]; then
-  # shellcheck disable=SC1090
-  . "${ENV_FILE}"
-fi
+ensure_directories
+load_env_file
+validate_base_env
+assert_profile_templates
 
-PROFILE=${PROFILE:-base}
-DOMAIN=${DOMAIN:-example.com}
-UUID=${UUID:-00000000-0000-4000-8000-000000000000}
-WS_PATH=${WS_PATH:-/replace-me}
-NODE_NAME=${NODE_NAME:-default-node}
-XRAY_PORT=${XRAY_PORT:-443}
-TLS_MODE=${TLS_MODE:-auto}
+transport_dir=$(template_profile_dir transport)
+proxy_dir=$(template_profile_dir proxy)
 
-mkdir -p "${RUNTIME_DIR}"
+find "${RUNTIME_DIR}" -maxdepth 1 -type f ! -name '.gitkeep' -delete
 
-render_template() {
-  template_path=$1
-  output_path=$2
+render_template_dir "${core_dir}" "core"
+render_template_dir "${transport_dir}" "transport"
+render_template_dir "${proxy_dir}" "proxy"
 
-  sed \
-    -e "s|{{PROFILE}}|${PROFILE}|g" \
-    -e "s|{{DOMAIN}}|${DOMAIN}|g" \
-    -e "s|{{UUID}}|${UUID}|g" \
-    -e "s|{{WS_PATH}}|${WS_PATH}|g" \
-    -e "s|{{NODE_NAME}}|${NODE_NAME}|g" \
-    -e "s|{{XRAY_PORT}}|${XRAY_PORT}|g" \
-    -e "s|{{TLS_MODE}}|${TLS_MODE}|g" \
-    "${template_path}" > "${output_path}"
-}
-
-render_template "${ROOT_DIR}/templates/core/base.env.tpl" "${RUNTIME_DIR}/base.env"
-render_template "${ROOT_DIR}/templates/core/manifest.json.tpl" "${RUNTIME_DIR}/manifest.json"
-render_template "${ROOT_DIR}/templates/transport/transport-placeholder.tpl" "${RUNTIME_DIR}/transport.conf"
-render_template "${ROOT_DIR}/templates/proxy/proxy-placeholder.tpl" "${RUNTIME_DIR}/proxy.conf"
-
-echo "[OK] 已生成运行时占位配置:"
-echo "  - ${RUNTIME_DIR}/base.env"
-echo "  - ${RUNTIME_DIR}/manifest.json"
-echo "  - ${RUNTIME_DIR}/transport.conf"
-echo "  - ${RUNTIME_DIR}/proxy.conf"
+log_info "已根据 PROFILE=${PROFILE} 选择模板目录"
+log_info "transport: ${transport_dir}"
+log_info "proxy: ${proxy_dir}"
+echo "[OK] 已生成运行时配置:"
+find "${RUNTIME_DIR}" -maxdepth 1 -type f | sort

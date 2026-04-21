@@ -59,6 +59,14 @@ typings/
 # dotenv environment variables file
 .env
 
+# Rendered runtime artifacts
+data/runtime/*
+!data/runtime/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
+data/logs/*
+!data/logs/.gitkeep
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 
@@ -83,4 +91,3 @@ typings/
 
 # Codex	
 .codex
-
