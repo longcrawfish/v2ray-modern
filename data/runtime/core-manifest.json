@@ -1,0 +1,22 @@
+{
+  "phase": "phase1a",
+  "branch_role": "refactor-base",
+  "profile": "reality",
+  "domain": "example.com",
+  "node_name": "reality-node",
+  "xray_port": "443",
+  "tls_mode": "reality",
+  "reality_server_name": "www.cloudflare.com",
+  "reality_dest": "www.cloudflare.com:443",
+  "template_slots": {
+    "transport": "templates/transport/reality",
+    "proxy": "templates/proxy/reality"
+  },
+  "services": [
+    "xray"
+  ],
+  "notes": [
+    "当前文件仅为底座占位产物",
+    "具体协议和 transport 逻辑由后续分支实现"
+  ]
+}

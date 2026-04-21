@@ -1,0 +1,5 @@
+profile=reality
+proxy_required=false
+reason=reality_direct_transport
+
+# Reality profile does not require a reverse proxy or traditional TLS certificate service.

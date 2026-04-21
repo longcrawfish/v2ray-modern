@@ -1,0 +1,15 @@
+{
+  "profile": "reality",
+  "domain": "example.com",
+  "uuid": "11111111-2222-4333-8444-555555555555",
+  "node_name": "reality-node",
+  "port": "443",
+  "protocol": "vless",
+  "security": "reality",
+  "server_name": "www.cloudflare.com",
+  "public_key": "4-1iQ4RjWgM0Y7pQwQf6T0G6w6fS3hL4Hc0kP2vTQm8=",
+  "short_id": "0123abcd",
+  "fingerprint": "chrome",
+  "spider_x": "/",
+  "flow": "xtls-rprx-vision"
+}
