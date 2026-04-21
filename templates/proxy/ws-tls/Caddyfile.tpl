@@ -7,8 +7,15 @@
 {{DOMAIN}} {
   encode zstd gzip
 
-  @ws path {{WS_PATH}}
-  reverse_proxy @ws xray:{{XRAY_PORT}}
+  @ws {
+    path {{WS_PATH}}
+    header Connection *Upgrade*
+    header Upgrade websocket
+  }
+
+  handle @ws {
+    reverse_proxy xray:{{XRAY_PORT}}
+  }
 
   handle {
     root * /srv
