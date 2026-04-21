@@ -299,6 +299,15 @@ validate_reality_env() {
         fail "REALITY_SHORT_ID 必须是十六进制字符串。"
         ;;
     esac
+
+    short_id_length=${#REALITY_SHORT_ID}
+    if [ $((short_id_length % 2)) -ne 0 ]; then
+      fail "REALITY_SHORT_ID 长度必须为偶数。"
+    fi
+
+    if [ "${short_id_length}" -gt 16 ]; then
+      fail "REALITY_SHORT_ID 长度不能超过 16 个十六进制字符。"
+    fi
   fi
 
   if reality_material_missing "${REALITY_PRIVATE_KEY}" || reality_material_missing "${REALITY_PUBLIC_KEY}" || reality_material_missing "${REALITY_SHORT_ID}"; then
