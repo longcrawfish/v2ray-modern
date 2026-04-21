@@ -14,5 +14,7 @@ echo "[OK] compose 服务已启动"
 echo "主要入口服务: ${PRIMARY_SERVICE_NAME}"
 echo "运行目录: ${RUNTIME_DIR}"
 echo "日志目录: ${LOG_DIR}"
+echo "关键配置路径:"
+show_runtime_paths
 echo "使用以下命令查看状态:"
 echo "  bash scripts/status.sh"

@@ -39,6 +39,8 @@
 │   ├── render-config.sh
 │   ├── start.sh
 │   ├── status.sh
+│   ├── show-env.sh
+│   ├── show-config.sh
 │   └── export-client.sh
 ├── templates/
 │   ├── core/
@@ -92,6 +94,7 @@ git checkout v2-ws-tls
 
 ```bash
 cp .env.example .env
+bash scripts/show-env.sh
 ```
 
 示例：
@@ -151,6 +154,7 @@ bash scripts/status.sh
 - `data/logs/` 日志目录
 - `data/runtime/` 渲染配置目录
 - `data/exports/` 导出目录
+- 实际使用的配置路径
 - 常用排障命令提示
 
 ### 7. 生成导出占位文件
@@ -171,6 +175,8 @@ bash scripts/export-client.sh
 | `scripts/render-config.sh` | 将模板渲染到 `data/runtime/` |
 | `scripts/start.sh` | 串联检查、渲染和 compose 启动 |
 | `scripts/status.sh` | 查看运行时文件与服务状态 |
+| `scripts/show-env.sh` | 输出当前加载的关键环境变量 |
+| `scripts/show-config.sh` | 输出渲染后的关键配置文件 |
 | `scripts/export-client.sh` | 预留客户端导出流程 |
 
 ---
@@ -204,6 +210,7 @@ bash scripts/export-client.sh
 
 ```bash
 cp .env.example .env
+bash scripts/show-env.sh
 bash scripts/start.sh
 bash scripts/status.sh
 bash scripts/export-client.sh
@@ -215,6 +222,31 @@ bash scripts/export-client.sh
 - Caddy 配置：`data/runtime/proxy-Caddyfile`
 - 静态站点：`data/runtime/proxy-index.html`
 - 客户端导出：`data/exports/vless-ws-tls.txt`
+
+部署前检查：
+
+- 域名已解析到服务器
+- 80/443 已放通且未占用
+- `DOMAIN` 只填纯域名
+- `WS_PATH` 以 `/` 开头
+- `TLS_EMAIL` 已设置
+
+常见错误：
+
+- `DOMAIN` 填成带 `https://` 的 URL
+- `WS_PATH` 漏掉前导 `/`
+- 80/443 被已有服务占用
+- 域名未解析导致 ACME 证书签发失败
+- 客户端使用的 `path` 与渲染后的配置不一致
+
+排障步骤：
+
+```bash
+bash scripts/show-env.sh
+bash scripts/show-config.sh
+bash scripts/status.sh
+docker compose -f compose.yaml logs --tail=100 caddy xray
+```
 
 ---
 

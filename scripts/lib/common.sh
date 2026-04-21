@@ -10,6 +10,7 @@ LOG_DIR="${ROOT_DIR}/data/logs"
 TEMPLATE_DIR="${ROOT_DIR}/templates"
 COMPOSE_FILE="${ROOT_DIR}/compose.yaml"
 PRIMARY_SERVICE_NAME="caddy"
+RUNTIME_ENV_FILE="${RUNTIME_DIR}/core-base.env"
 
 SUPPORTED_PROFILES="ws-tls reality"
 
@@ -92,6 +93,29 @@ load_env_if_present() {
     return 0
   fi
 
+  if [ -f "${RUNTIME_ENV_FILE}" ]; then
+    # shellcheck disable=SC1090
+    . "${RUNTIME_ENV_FILE}"
+    PROFILE=${PROFILE:-}
+    DOMAIN=${DOMAIN:-}
+    UUID=${UUID:-}
+    WS_PATH=${WS_PATH:-}
+    NODE_NAME=${NODE_NAME:-}
+    XRAY_PORT=${XRAY_PORT:-}
+    TLS_MODE=${TLS_MODE:-}
+    XRAY_IMAGE=${XRAY_IMAGE:-}
+    CADDY_IMAGE=${CADDY_IMAGE:-}
+    TLS_EMAIL=${TLS_EMAIL:-}
+    TLS_CA=${TLS_CA:-}
+    CADDY_HTTP_PORT=${CADDY_HTTP_PORT:-}
+    CADDY_HTTPS_PORT=${CADDY_HTTPS_PORT:-}
+    CADDY_ADMIN_PORT=${CADDY_ADMIN_PORT:-}
+    XRAY_LOG_LEVEL=${XRAY_LOG_LEVEL:-}
+    ENABLE_FAKE_SITE=${ENABLE_FAKE_SITE:-}
+    export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE XRAY_IMAGE CADDY_IMAGE TLS_EMAIL TLS_CA CADDY_HTTP_PORT CADDY_HTTPS_PORT CADDY_ADMIN_PORT XRAY_LOG_LEVEL ENABLE_FAKE_SITE
+    return 0
+  fi
+
   return 1
 }
 
@@ -126,6 +150,12 @@ validate_profile() {
 
 validate_domain() {
   require_non_empty "DOMAIN" "${DOMAIN}"
+
+  case "${DOMAIN}" in
+    http://*|https://*|*/*)
+      fail "DOMAIN 只能填写纯域名，不能包含协议头或路径。"
+      ;;
+  esac
 }
 
 validate_ws_path() {
@@ -226,6 +256,12 @@ validate_base_env() {
   validate_numeric_port "CADDY_HTTP_PORT" "${CADDY_HTTP_PORT}"
   validate_numeric_port "CADDY_HTTPS_PORT" "${CADDY_HTTPS_PORT}"
   validate_numeric_port "CADDY_ADMIN_PORT" "${CADDY_ADMIN_PORT}"
+
+  if [ "${PROFILE}" = "ws-tls" ]; then
+    require_non_empty "TLS_EMAIL" "${TLS_EMAIL}"
+    require_non_empty "XRAY_IMAGE" "${XRAY_IMAGE}"
+    require_non_empty "CADDY_IMAGE" "${CADDY_IMAGE}"
+  fi
 }
 
 template_profile_dir() {
@@ -279,4 +315,14 @@ render_template_dir() {
     base_name=$(basename "${template}" .tpl)
     render_template_file "${template}" "${RUNTIME_DIR}/${output_prefix}-${base_name}"
   done
+}
+
+show_runtime_paths() {
+  echo "runtime_dir=${RUNTIME_DIR}"
+  echo "xray_config=${RUNTIME_DIR}/transport-xray.json"
+  echo "caddy_config=${RUNTIME_DIR}/proxy-Caddyfile"
+  echo "site_index=${RUNTIME_DIR}/proxy-index.html"
+  echo "client_export=${EXPORT_DIR}/vless-ws-tls.txt"
+  echo "xray_logs=${LOG_DIR}/xray"
+  echo "caddy_logs=${LOG_DIR}/caddy"
 }

@@ -62,6 +62,7 @@
 
 ```bash
 cp .env.example .env
+bash scripts/show-env.sh
 bash scripts/start.sh
 bash scripts/status.sh
 ```
@@ -71,6 +72,111 @@ bash scripts/status.sh
 1. 参数与端口检查
 2. 配置模板渲染
 3. `docker compose up -d`
+
+---
+
+## 部署前检查事项
+
+- `DOMAIN` 已经解析到目标服务器公网 IP
+- `CADDY_HTTP_PORT` 和 `CADDY_HTTPS_PORT` 未被其他进程占用
+- 防火墙和安全组已放行 80/443
+- `UUID` 是合法 UUID
+- `WS_PATH` 以 `/` 开头，且不要与网站其他路径冲突
+- `TLS_EMAIL` 已填写可接收证书通知的邮箱
+- `XRAY_IMAGE` 与 `CADDY_IMAGE` 可在当前环境拉取
+
+---
+
+## 自测建议
+
+建议按以下顺序自测：
+
+1. `bash scripts/preflight-check.sh`
+2. `bash scripts/render-config.sh`
+3. `bash scripts/show-config.sh`
+4. `docker compose -f compose.yaml config`
+5. `bash scripts/start.sh`
+6. `bash scripts/status.sh`
+7. `bash scripts/export-client.sh`
+
+目标：
+
+- 配置文件已渲染到 `data/runtime/`
+- `xray` / `caddy` 的 volume 挂载路径与配置路径一致
+- VLESS 导出链接与 `.env` 中的 `DOMAIN`、`WS_PATH`、`UUID` 一致
+
+---
+
+## 常见错误
+
+### 1. 域名填写成 URL
+
+症状：
+- Caddy 配置生成后站点地址异常
+
+排查：
+- `DOMAIN` 只能写 `example.com`
+- 不能写 `https://example.com/path`
+
+### 2. `WS_PATH` 没有以 `/` 开头
+
+症状：
+- 预检直接失败
+- 或客户端连接路径错误
+
+排查：
+- 确保类似 `/ray`、`/transport-path`
+
+### 3. 80/443 端口被占用
+
+症状：
+- `preflight-check.sh` 失败
+- compose 启动后端口绑定失败
+
+排查：
+- 先释放端口
+- 或调整 `.env` 中的 `CADDY_HTTP_PORT` / `CADDY_HTTPS_PORT`
+
+### 4. TLS 未签发成功
+
+症状：
+- HTTPS 无法访问
+- Caddy 日志出现 ACME 失败
+
+排查：
+- 检查域名解析
+- 检查 80 端口是否可达
+- 检查邮箱和 ACME CA 参数
+
+### 5. WebSocket 连接失败
+
+症状：
+- 站点可打开，但代理连接失败
+
+排查：
+- `bash scripts/show-config.sh`
+- 核对 `proxy-Caddyfile` 里的 `WS_PATH`
+- 核对 `transport-xray.json` 里的 `wsSettings.path`
+- 核对 `data/exports/vless-ws-tls.txt` 中的 `path`
+
+---
+
+## 排障步骤
+
+1. `bash scripts/show-env.sh`
+确认实际载入的环境变量。
+
+2. `bash scripts/show-config.sh`
+确认 Xray 和 Caddy 渲染后的配置内容。
+
+3. `bash scripts/status.sh`
+确认容器状态、日志目录和关键路径。
+
+4. `docker compose -f compose.yaml logs --tail=100 caddy xray`
+查看最近日志。
+
+5. `docker compose -f compose.yaml ps`
+确认服务是否处于运行状态。
 
 ---
 
@@ -96,3 +202,4 @@ bash scripts/export-client.sh
 - TLS 由 Caddy 自动签发，要求域名已正确解析到服务器
 - 尚未提供多客户端、多路由或管理面板能力
 - `reality` 仍在独立分支实现，不应与本分支耦合
+- 当前 healthcheck 仅检查配置文件存在，不代表完整链路已联通
