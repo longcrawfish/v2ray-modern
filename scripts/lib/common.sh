@@ -8,9 +8,11 @@ RUNTIME_DIR="${ROOT_DIR}/data/runtime"
 EXPORT_DIR="${ROOT_DIR}/data/exports"
 LOG_DIR="${ROOT_DIR}/data/logs"
 TEMPLATE_DIR="${ROOT_DIR}/templates"
+EXPORT_TEMPLATE_DIR="${TEMPLATE_DIR}/export"
 COMPOSE_FILE="${ROOT_DIR}/compose.yaml"
 SERVICE_NAME="xray"
 GENERATED_REALITY_ENV="${RUNTIME_DIR}/reality-generated.env"
+RUNTIME_ENV_FILE="${RUNTIME_DIR}/core-base.env"
 
 SUPPORTED_PROFILES="ws-tls reality"
 
@@ -106,6 +108,12 @@ normalize_env() {
   TLS_MODE=${TLS_MODE:-}
   XRAY_IMAGE=${XRAY_IMAGE:-}
   XRAY_LOG_LEVEL=${XRAY_LOG_LEVEL:-}
+  SERVER=${SERVER:-}
+  PORT=${PORT:-}
+  SUBSCRIPTION_HOST=${SUBSCRIPTION_HOST:-}
+  CLIENT_FINGERPRINT=${CLIENT_FINGERPRINT:-}
+  SNI=${SNI:-}
+  HOST=${HOST:-}
   REALITY_SERVER_NAME=${REALITY_SERVER_NAME:-}
   REALITY_DEST=${REALITY_DEST:-}
   REALITY_PRIVATE_KEY=${REALITY_PRIVATE_KEY:-}
@@ -114,10 +122,27 @@ normalize_env() {
   REALITY_FINGERPRINT=${REALITY_FINGERPRINT:-}
   REALITY_SPIDER_X=${REALITY_SPIDER_X:-}
   REALITY_FLOW=${REALITY_FLOW:-}
+  FLOW=${FLOW:-}
+
+  if [ -z "${CLIENT_FINGERPRINT}" ] && [ -n "${REALITY_FINGERPRINT}" ]; then
+    CLIENT_FINGERPRINT=${REALITY_FINGERPRINT}
+  fi
+
+  if [ -z "${FLOW}" ] && [ -n "${REALITY_FLOW}" ]; then
+    FLOW=${REALITY_FLOW}
+  fi
+
+  if [ -z "${REALITY_FINGERPRINT}" ] && [ -n "${CLIENT_FINGERPRINT}" ]; then
+    REALITY_FINGERPRINT=${CLIENT_FINGERPRINT}
+  fi
+
+  if [ -z "${REALITY_FLOW}" ] && [ -n "${FLOW}" ]; then
+    REALITY_FLOW=${FLOW}
+  fi
 }
 
 export_loaded_env() {
-  export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE XRAY_IMAGE XRAY_LOG_LEVEL REALITY_SERVER_NAME REALITY_DEST REALITY_PRIVATE_KEY REALITY_PUBLIC_KEY REALITY_SHORT_ID REALITY_FINGERPRINT REALITY_SPIDER_X REALITY_FLOW
+  export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE XRAY_IMAGE XRAY_LOG_LEVEL SERVER PORT SUBSCRIPTION_HOST CLIENT_FINGERPRINT SNI HOST REALITY_SERVER_NAME REALITY_DEST REALITY_PRIVATE_KEY REALITY_PUBLIC_KEY REALITY_SHORT_ID REALITY_FINGERPRINT REALITY_SPIDER_X REALITY_FLOW FLOW
 }
 
 load_env_if_present() {
@@ -138,6 +163,34 @@ load_env_if_present() {
   fi
 
   return 1
+}
+
+supplement_env_from_runtime_file() {
+  if [ ! -f "${RUNTIME_ENV_FILE}" ]; then
+    return 0
+  fi
+
+  while IFS='=' read -r raw_key raw_value; do
+    case "${raw_key}" in
+      ''|\#*)
+        continue
+        ;;
+    esac
+
+    eval "current_value=\${${raw_key}:-}"
+    if [ -n "${current_value}" ]; then
+      continue
+    fi
+
+    normalized_value=${raw_value}
+    normalized_value=${normalized_value#\"}
+    normalized_value=${normalized_value%\"}
+    printf -v "${raw_key}" '%s' "${normalized_value}"
+    export "${raw_key}"
+  done < "${RUNTIME_ENV_FILE}"
+
+  normalize_env
+  export_loaded_env
 }
 
 require_non_empty() {
@@ -344,6 +397,12 @@ s|{{XRAY_PORT}}|${XRAY_PORT}|g
 s|{{TLS_MODE}}|${TLS_MODE}|g
 s|{{XRAY_IMAGE}}|${XRAY_IMAGE}|g
 s|{{XRAY_LOG_LEVEL}}|${XRAY_LOG_LEVEL}|g
+s|{{SERVER}}|${SERVER}|g
+s|{{PORT}}|${PORT}|g
+s|{{SUBSCRIPTION_HOST}}|${SUBSCRIPTION_HOST}|g
+s|{{CLIENT_FINGERPRINT}}|${CLIENT_FINGERPRINT}|g
+s|{{SNI}}|${SNI}|g
+s|{{HOST}}|${HOST}|g
 s|{{REALITY_SERVER_NAME}}|${REALITY_SERVER_NAME}|g
 s|{{REALITY_DEST}}|${REALITY_DEST}|g
 s|{{REALITY_PRIVATE_KEY}}|${REALITY_PRIVATE_KEY}|g
@@ -352,7 +411,60 @@ s|{{REALITY_SHORT_ID}}|${REALITY_SHORT_ID}|g
 s|{{REALITY_FINGERPRINT}}|${REALITY_FINGERPRINT}|g
 s|{{REALITY_SPIDER_X}}|${REALITY_SPIDER_X}|g
 s|{{REALITY_FLOW}}|${REALITY_FLOW}|g
+s|{{FLOW}}|${FLOW}|g
 EOF
+}
+
+escape_sed_replacement() {
+  printf '%s' "$1" | sed -e 's/[&|\\]/\\&/g'
+}
+
+render_dollar_template_file() {
+  template_path=$1
+  output_path=$2
+  shift 2
+
+  sed_script=$(
+    for var_name in "$@"; do
+      eval "var_value=\${${var_name}:-}"
+      escaped_value=$(escape_sed_replacement "${var_value}")
+      printf 's|\\${%s}|%s|g\n' "${var_name}" "${escaped_value}"
+    done
+  )
+
+  printf '%s\n' "${sed_script}" | sed -f - "${template_path}" > "${output_path}"
+}
+
+assert_no_dollar_placeholders() {
+  target_file=$1
+
+  if grep -n '\${[A-Z0-9_][A-Z0-9_]*}' "${target_file}" >/dev/null 2>&1; then
+    log_error "模板渲染后仍存在未替换占位符: ${target_file}"
+    grep -n '\${[A-Z0-9_][A-Z0-9_]*}' "${target_file}" >&2 || true
+    exit 1
+  fi
+}
+
+urlencode_utf8() {
+  encoded=""
+
+  for byte in $(printf '%s' "$1" | od -An -tx1 -v); do
+    decimal=$((16#${byte}))
+
+    if { [ "${decimal}" -ge 48 ] && [ "${decimal}" -le 57 ]; } ||
+      { [ "${decimal}" -ge 65 ] && [ "${decimal}" -le 90 ]; } ||
+      { [ "${decimal}" -ge 97 ] && [ "${decimal}" -le 122 ]; } ||
+      [ "${decimal}" -eq 45 ] || [ "${decimal}" -eq 46 ] ||
+      [ "${decimal}" -eq 95 ] || [ "${decimal}" -eq 126 ]; then
+      printf -v chr '%b' "\\x${byte}"
+      encoded="${encoded}${chr}"
+    else
+      upper_byte=$(printf '%s' "${byte}" | tr '[:lower:]' '[:upper:]')
+      encoded="${encoded}%${upper_byte}"
+    fi
+  done
+
+  printf '%s' "${encoded}"
 }
 
 render_template_file() {

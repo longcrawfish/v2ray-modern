@@ -1,0 +1,1 @@
+vless://${UUID}@${SERVER}:${PORT}?encryption=none&security=reality&sni=${REALITY_SERVER_NAME}&fp=${CLIENT_FINGERPRINT}&pbk=${REALITY_PUBLIC_KEY}&sid=${REALITY_SHORT_ID}&type=tcp&flow=${FLOW}#${NODE_NAME_URLENCODED}

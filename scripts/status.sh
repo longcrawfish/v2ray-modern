@@ -31,7 +31,7 @@ find "${RUNTIME_DIR}" -maxdepth 1 -type f | sort || true
 
 echo
 echo "[INFO] 导出目录"
-find "${EXPORT_DIR}" -maxdepth 1 -type f | sort || true
+find "${EXPORT_DIR}" -maxdepth 2 -type f | sort || true
 
 echo
 echo "[INFO] 常用排障命令"

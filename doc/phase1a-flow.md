@@ -9,11 +9,11 @@ preflight-check
 ↓
 render-config
 ↓
+export-client
+↓
 docker compose up -d
 ↓
 status
-↓
-export-client
 ```
 
 ---
@@ -42,7 +42,7 @@ export-client
 ### 5. 状态与导出
 
 - `status.sh` 输出状态、路径、日志和排障提示
-- `export-client.sh` 输出客户端连接信息
+- `export-client.sh` 输出 `clash.yaml`、`vless.txt` 和订阅说明
 
 ---
 
@@ -72,6 +72,8 @@ xray runtime
 caddy runtime
 ↓
 443 with domain and TLS
+↓
+client export
 ```
 
 ### `v2-reality`
@@ -86,6 +88,8 @@ reality key material
 xray reality runtime
 ↓
 direct reality transport
+↓
+client export
 ```
 
 ---
@@ -99,8 +103,26 @@ select profile template directories
 ↓
 render runtime config
 ↓
+render client export
+↓
 start profile-specific services
 ```
+
+---
+
+## 导出产物
+
+```text
+data/exports/<profile>/
+├── clash.yaml
+├── clash-subscription-url.txt
+└── vless.txt
+```
+
+字段差异：
+
+- `ws-tls`：`network: ws`、`ws-opts.path`、`ws-opts.headers.Host`
+- `reality`：`network: tcp`、`flow`、`reality-opts.public-key`、`reality-opts.short-id`
 
 ---
 

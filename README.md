@@ -55,6 +55,7 @@
 │   └── export-client.sh
 ├── templates/
 │   ├── core/
+│   ├── export/
 │   ├── transport/
 │   └── proxy/
 ├── data/
@@ -110,18 +111,18 @@ cp .env.example .env
 ```bash
 bash scripts/preflight-check.sh
 bash scripts/render-config.sh
+bash scripts/export-client.sh
 bash scripts/start.sh
 bash scripts/status.sh
-bash scripts/export-client.sh
 ```
 
 说明：
 
 - `preflight-check.sh` 负责环境和参数检查
 - `render-config.sh` 负责按 `PROFILE` 渲染模板
+- `export-client.sh` 负责导出客户端 YAML、订阅说明和 `vless://` 链接
 - `start.sh` 负责标准启动
 - `status.sh` 负责状态与排障信息输出
-- `export-client.sh` 负责导出客户端连接信息
 
 ---
 
@@ -192,7 +193,80 @@ bash scripts/export-client.sh
 
 ### export
 
-位于 `data/exports/` 的导出结果，例如客户端链接或配置摘要。
+位于 `data/exports/` 的导出结果，例如 Clash YAML、订阅说明和 `vless://` 链接。
+
+## 客户端导出说明
+
+项目会同时导出两类客户端配置：
+
+1. Clash / Mihomo YAML
+   - 用于 Clash Verge Rev、ClashX Meta、Mihomo 等客户端
+   - 推荐通过 URL 方式导入 `clash.yaml`
+
+2. `vless://` 链接
+   - 用于 v2rayNG 等支持 Xray/VLESS 的客户端
+   - 可直接复制导入
+
+导出目录约定：
+
+```text
+data/exports/<profile>/
+├── clash.yaml
+├── clash-subscription-url.txt
+└── vless.txt
+```
+
+其中：
+
+- `ws-tls` 导出 `network: ws`、`ws-opts.path`、`Host`、`servername`
+- `reality` 导出 `network: tcp`、`flow`、`reality-opts.public-key`、`reality-opts.short-id`
+- `reality` 不会生成 `ws-opts`
+
+完整说明见 [doc/client-export.md](doc/client-export.md)。
+
+## 导出示例
+
+`ws-tls`：
+
+```bash
+cp .env.example .env
+# 编辑 .env
+# PROFILE=ws-tls
+# DOMAIN=example.com
+# UUID=00000000-0000-4000-8000-000000000000
+# NODE_NAME=ws-node
+# WS_PATH=/transport-path
+# SERVER=example.com
+# PORT=443
+# SNI=example.com
+# HOST=example.com
+# CLIENT_FINGERPRINT=chrome
+# SUBSCRIPTION_HOST=sub.example.com
+bash scripts/render-config.sh
+bash scripts/export-client.sh
+find data/exports/ws-tls -maxdepth 1 -type f | sort
+```
+
+`reality`：
+
+```bash
+cp .env.example .env
+# 编辑 .env
+# PROFILE=reality
+# DOMAIN=example.com
+# UUID=00000000-0000-4000-8000-000000000000
+# NODE_NAME=reality-node
+# SERVER=example.com
+# PORT=443
+# CLIENT_FINGERPRINT=chrome
+# REALITY_SERVER_NAME=www.cloudflare.com
+# REALITY_PUBLIC_KEY=<your-public-key>
+# REALITY_SHORT_ID=0123abcd
+# FLOW=xtls-rprx-vision
+bash scripts/render-config.sh
+bash scripts/export-client.sh
+find data/exports/reality -maxdepth 1 -type f | sort
+```
 
 ### transport-specific logic
 
