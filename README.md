@@ -233,6 +233,8 @@ data/exports/<profile>/
 
 ## 导出示例
 
+以下示例以当前 `v2-reality` 分支为主；`ws-tls` 相关字段仅作为并列 profile 参考。
+
 `ws-tls`：
 
 ```bash
