@@ -6,6 +6,7 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 ENV_FILE="${ROOT_DIR}/.env"
 RUNTIME_DIR="${ROOT_DIR}/data/runtime"
 EXPORT_DIR="${ROOT_DIR}/data/exports"
+EXPORT_TEMPLATE_DIR="${ROOT_DIR}/templates/export"
 LOG_DIR="${ROOT_DIR}/data/logs"
 TEMPLATE_DIR="${ROOT_DIR}/templates"
 COMPOSE_FILE="${ROOT_DIR}/compose.yaml"
@@ -41,6 +42,42 @@ require_command() {
   fi
 }
 
+hydrate_env_vars() {
+  env_vars='
+PROFILE
+DOMAIN
+UUID
+WS_PATH
+NODE_NAME
+XRAY_PORT
+TLS_MODE
+XRAY_IMAGE
+CADDY_IMAGE
+TLS_EMAIL
+TLS_CA
+CADDY_HTTP_PORT
+CADDY_HTTPS_PORT
+CADDY_ADMIN_PORT
+XRAY_LOG_LEVEL
+ENABLE_FAKE_SITE
+SERVER
+PORT
+SUBSCRIPTION_HOST
+CLIENT_FINGERPRINT
+SNI
+HOST
+REALITY_SERVER_NAME
+REALITY_PUBLIC_KEY
+REALITY_SHORT_ID
+FLOW
+'
+
+  for var_name in ${env_vars}; do
+    eval "var_value=\${${var_name}:-}"
+    export "${var_name}=${var_value}"
+  done
+}
+
 load_env_file() {
   if [ ! -f "${ENV_FILE}" ]; then
     fail "未找到 .env，请先执行 'cp .env.example .env' 并填写必要参数。"
@@ -48,75 +85,50 @@ load_env_file() {
 
   # shellcheck disable=SC1090
   . "${ENV_FILE}"
-
-  PROFILE=${PROFILE:-}
-  DOMAIN=${DOMAIN:-}
-  UUID=${UUID:-}
-  WS_PATH=${WS_PATH:-}
-  NODE_NAME=${NODE_NAME:-}
-  XRAY_PORT=${XRAY_PORT:-}
-  TLS_MODE=${TLS_MODE:-}
-  XRAY_IMAGE=${XRAY_IMAGE:-}
-  CADDY_IMAGE=${CADDY_IMAGE:-}
-  TLS_EMAIL=${TLS_EMAIL:-}
-  TLS_CA=${TLS_CA:-}
-  CADDY_HTTP_PORT=${CADDY_HTTP_PORT:-}
-  CADDY_HTTPS_PORT=${CADDY_HTTPS_PORT:-}
-  CADDY_ADMIN_PORT=${CADDY_ADMIN_PORT:-}
-  XRAY_LOG_LEVEL=${XRAY_LOG_LEVEL:-}
-  ENABLE_FAKE_SITE=${ENABLE_FAKE_SITE:-}
-
-  export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE XRAY_IMAGE CADDY_IMAGE TLS_EMAIL TLS_CA CADDY_HTTP_PORT CADDY_HTTPS_PORT CADDY_ADMIN_PORT XRAY_LOG_LEVEL ENABLE_FAKE_SITE
+  hydrate_env_vars
 }
 
 load_env_if_present() {
   if [ -f "${ENV_FILE}" ]; then
     # shellcheck disable=SC1090
     . "${ENV_FILE}"
-    PROFILE=${PROFILE:-}
-    DOMAIN=${DOMAIN:-}
-    UUID=${UUID:-}
-    WS_PATH=${WS_PATH:-}
-    NODE_NAME=${NODE_NAME:-}
-    XRAY_PORT=${XRAY_PORT:-}
-    TLS_MODE=${TLS_MODE:-}
-    XRAY_IMAGE=${XRAY_IMAGE:-}
-    CADDY_IMAGE=${CADDY_IMAGE:-}
-    TLS_EMAIL=${TLS_EMAIL:-}
-    TLS_CA=${TLS_CA:-}
-    CADDY_HTTP_PORT=${CADDY_HTTP_PORT:-}
-    CADDY_HTTPS_PORT=${CADDY_HTTPS_PORT:-}
-    CADDY_ADMIN_PORT=${CADDY_ADMIN_PORT:-}
-    XRAY_LOG_LEVEL=${XRAY_LOG_LEVEL:-}
-    ENABLE_FAKE_SITE=${ENABLE_FAKE_SITE:-}
-    export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE XRAY_IMAGE CADDY_IMAGE TLS_EMAIL TLS_CA CADDY_HTTP_PORT CADDY_HTTPS_PORT CADDY_ADMIN_PORT XRAY_LOG_LEVEL ENABLE_FAKE_SITE
+    hydrate_env_vars
     return 0
   fi
 
   if [ -f "${RUNTIME_ENV_FILE}" ]; then
     # shellcheck disable=SC1090
     . "${RUNTIME_ENV_FILE}"
-    PROFILE=${PROFILE:-}
-    DOMAIN=${DOMAIN:-}
-    UUID=${UUID:-}
-    WS_PATH=${WS_PATH:-}
-    NODE_NAME=${NODE_NAME:-}
-    XRAY_PORT=${XRAY_PORT:-}
-    TLS_MODE=${TLS_MODE:-}
-    XRAY_IMAGE=${XRAY_IMAGE:-}
-    CADDY_IMAGE=${CADDY_IMAGE:-}
-    TLS_EMAIL=${TLS_EMAIL:-}
-    TLS_CA=${TLS_CA:-}
-    CADDY_HTTP_PORT=${CADDY_HTTP_PORT:-}
-    CADDY_HTTPS_PORT=${CADDY_HTTPS_PORT:-}
-    CADDY_ADMIN_PORT=${CADDY_ADMIN_PORT:-}
-    XRAY_LOG_LEVEL=${XRAY_LOG_LEVEL:-}
-    ENABLE_FAKE_SITE=${ENABLE_FAKE_SITE:-}
-    export PROFILE DOMAIN UUID WS_PATH NODE_NAME XRAY_PORT TLS_MODE XRAY_IMAGE CADDY_IMAGE TLS_EMAIL TLS_CA CADDY_HTTP_PORT CADDY_HTTPS_PORT CADDY_ADMIN_PORT XRAY_LOG_LEVEL ENABLE_FAKE_SITE
+    hydrate_env_vars
     return 0
   fi
 
   return 1
+}
+
+supplement_env_from_runtime_file() {
+  if [ ! -f "${RUNTIME_ENV_FILE}" ]; then
+    return 0
+  fi
+
+  while IFS='=' read -r raw_key raw_value; do
+    case "${raw_key}" in
+      ''|\#*)
+        continue
+        ;;
+    esac
+
+    eval "current_value=\${${raw_key}:-}"
+    if [ -n "${current_value}" ]; then
+      continue
+    fi
+
+    normalized_value=${raw_value}
+    normalized_value=${normalized_value#\"}
+    normalized_value=${normalized_value%\"}
+    printf -v "${raw_key}" '%s' "${normalized_value}"
+    export "${raw_key}"
+  done < "${RUNTIME_ENV_FILE}"
 }
 
 require_non_empty() {
@@ -250,7 +262,6 @@ compose() {
 validate_base_env() {
   validate_profile
   validate_domain
-  validate_ws_path
   validate_uuid_if_present
   validate_numeric_port "XRAY_PORT" "${XRAY_PORT}"
   validate_numeric_port "CADDY_HTTP_PORT" "${CADDY_HTTP_PORT}"
@@ -258,6 +269,7 @@ validate_base_env() {
   validate_numeric_port "CADDY_ADMIN_PORT" "${CADDY_ADMIN_PORT}"
 
   if [ "${PROFILE}" = "ws-tls" ]; then
+    validate_ws_path
     require_non_empty "TLS_EMAIL" "${TLS_EMAIL}"
     require_non_empty "XRAY_IMAGE" "${XRAY_IMAGE}"
     require_non_empty "CADDY_IMAGE" "${CADDY_IMAGE}"
@@ -295,7 +307,58 @@ s|{{CADDY_HTTPS_PORT}}|${CADDY_HTTPS_PORT}|g
 s|{{CADDY_ADMIN_PORT}}|${CADDY_ADMIN_PORT}|g
 s|{{XRAY_LOG_LEVEL}}|${XRAY_LOG_LEVEL}|g
 s|{{ENABLE_FAKE_SITE}}|${ENABLE_FAKE_SITE}|g
+s|{{SERVER}}|${SERVER}|g
+s|{{PORT}}|${PORT}|g
+s|{{SUBSCRIPTION_HOST}}|${SUBSCRIPTION_HOST}|g
+s|{{CLIENT_FINGERPRINT}}|${CLIENT_FINGERPRINT}|g
+s|{{SNI}}|${SNI}|g
+s|{{HOST}}|${HOST}|g
+s|{{REALITY_SERVER_NAME}}|${REALITY_SERVER_NAME}|g
+s|{{REALITY_PUBLIC_KEY}}|${REALITY_PUBLIC_KEY}|g
+s|{{REALITY_SHORT_ID}}|${REALITY_SHORT_ID}|g
+s|{{FLOW}}|${FLOW}|g
 EOF
+}
+
+escape_sed_replacement() {
+  printf '%s' "$1" | sed -e 's/[&|\\]/\\&/g'
+}
+
+render_dollar_template_file() {
+  template_path=$1
+  output_path=$2
+  shift 2
+
+  sed_script=$(
+    for var_name in "$@"; do
+      eval "var_value=\${${var_name}:-}"
+      escaped_value=$(escape_sed_replacement "${var_value}")
+      printf 's|\\${%s}|%s|g\n' "${var_name}" "${escaped_value}"
+    done
+  )
+
+  printf '%s\n' "${sed_script}" | sed -f - "${template_path}" > "${output_path}"
+}
+
+assert_no_dollar_placeholders() {
+  target_file=$1
+
+  if grep -n '\${[A-Z0-9_][A-Z0-9_]*}' "${target_file}" >/dev/null 2>&1; then
+    log_error "模板渲染后仍存在未替换占位符: ${target_file}"
+    grep -n '\${[A-Z0-9_][A-Z0-9_]*}' "${target_file}" >&2 || true
+    exit 1
+  fi
+}
+
+urlencode_utf8() {
+  require_command perl
+  perl -MEncode -e '
+    use strict;
+    use warnings;
+    my $value = encode("UTF-8", shift // q());
+    $value =~ s/([^A-Za-z0-9\-_.~])/sprintf("%%%02X", ord($1))/ge;
+    print $value;
+  ' "$1"
 }
 
 render_template_file() {
@@ -322,7 +385,8 @@ show_runtime_paths() {
   echo "xray_config=${RUNTIME_DIR}/transport-xray.json"
   echo "caddy_config=${RUNTIME_DIR}/proxy-Caddyfile"
   echo "site_index=${RUNTIME_DIR}/proxy-index.html"
-  echo "client_export=${EXPORT_DIR}/vless-ws-tls.txt"
+  echo "client_exports_ws_tls=${EXPORT_DIR}/ws-tls"
+  echo "client_exports_reality=${EXPORT_DIR}/reality"
   echo "xray_logs=${LOG_DIR}/xray"
   echo "caddy_logs=${LOG_DIR}/caddy"
 }

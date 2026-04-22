@@ -9,6 +9,8 @@ preflight-check
 ↓
 render-config
 ↓
+export-client
+↓
 docker compose up
 ↓
 status
@@ -40,6 +42,8 @@ ws-tls profile
 xray config
 ↓
 caddy / tls
+↓
+client export
 ```
 
 ---
@@ -54,6 +58,8 @@ reality profile
 xray config
 ↓
 direct 443
+↓
+client export
 ```
 
 ---
@@ -67,8 +73,24 @@ select template
 ↓
 render config
 ↓
+render client export
+↓
 start service
 ```
+
+## 📦 导出产物
+
+```
+data/exports/<profile>/
+├── clash.yaml
+├── vless.txt
+└── clash-subscription-url.txt
+```
+
+字段差异：
+
+- `ws-tls`：`network: ws`、`ws-opts.path`、`ws-opts.headers.Host`
+- `reality`：`network: tcp`、`flow`、`reality-opts.public-key`、`reality-opts.short-id`
 
 ---
 
@@ -81,4 +103,3 @@ dashboard
 ↓
 api
 ```
-

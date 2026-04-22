@@ -19,8 +19,8 @@ echo
 echo "[INFO] Caddy 配置"
 sed -n '1,220p' "${RUNTIME_DIR}/proxy-Caddyfile"
 
-if [ -f "${EXPORT_DIR}/vless-ws-tls.txt" ]; then
+if [ -d "${EXPORT_DIR}/${PROFILE}" ]; then
   echo
-  echo "[INFO] 客户端导出"
-  sed -n '1,20p' "${EXPORT_DIR}/vless-ws-tls.txt"
+  echo "[INFO] 客户端导出目录"
+  find "${EXPORT_DIR}/${PROFILE}" -maxdepth 1 -type f | sort
 fi

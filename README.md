@@ -44,6 +44,7 @@
 │   └── export-client.sh
 ├── templates/
 │   ├── core/
+│   ├── export/
 │   ├── transport/
 │   └── proxy/
 ├── data/
@@ -162,13 +163,17 @@ bash scripts/status.sh
 - 实际使用的配置路径
 - 常用排障命令提示
 
-### 7. 生成导出占位文件
+### 7. 导出客户端配置
 
 ```bash
 bash scripts/export-client.sh
 ```
 
-对于 `v2-ws-tls`，该命令会导出可直接使用的 VLESS URL。
+该命令会按 `PROFILE` 输出到 `data/exports/<profile>/`：
+
+- `clash.yaml`
+- `vless.txt`
+- `clash-subscription-url.txt`
 
 ---
 
@@ -182,7 +187,7 @@ bash scripts/export-client.sh
 | `scripts/status.sh` | 查看运行时文件与服务状态 |
 | `scripts/show-env.sh` | 输出当前加载的关键环境变量 |
 | `scripts/show-config.sh` | 输出渲染后的关键配置文件 |
-| `scripts/export-client.sh` | 预留客户端导出流程 |
+| `scripts/export-client.sh` | 导出 Clash/Mihomo YAML、订阅说明和 `vless://` 链接 |
 
 ---
 
@@ -191,9 +196,39 @@ bash scripts/export-client.sh
 - 统一从 `.env` 加载参数，缺失时直接报错
 - `PROFILE` 当前作为模板路由键，允许值为 `ws-tls`、`reality`
 - `templates/core/` 存放公共模板
+- `templates/export/<profile>/` 存放客户端导出模板
 - `templates/transport/<profile>/` 存放 transport 插槽模板
 - `templates/proxy/<profile>/` 存放 proxy 插槽模板
 - `render-config.sh` 只负责变量注入和目录路由，不负责写协议实现
+
+## 客户端导出说明
+
+项目会同时导出两类客户端配置：
+
+1. Clash / Mihomo YAML
+   - 用于 Clash Verge Rev、ClashX Meta、Mihomo 等客户端
+   - 推荐通过 URL 方式导入 `clash.yaml`
+
+2. `vless://` 链接
+   - 用于 v2rayNG 等支持 Xray/VLESS 的客户端
+   - 可直接复制导入
+
+导出目录约定：
+
+```text
+data/exports/<profile>/
+├── clash.yaml
+├── clash-subscription-url.txt
+└── vless.txt
+```
+
+其中：
+
+- `ws-tls` 导出 `network: ws`、`ws-opts.path`、`Host`、`servername`
+- `reality` 导出 `network: tcp`、`flow`、`reality-opts.public-key`、`reality-opts.short-id`
+- `reality` 不会生成 `ws-opts`
+
+完整说明见 [doc/client-export.md](doc/client-export.md)。
 
 ---
 
@@ -216,9 +251,10 @@ bash scripts/export-client.sh
 ```bash
 cp .env.example .env
 bash scripts/show-env.sh
+bash scripts/render-config.sh
+bash scripts/export-client.sh
 bash scripts/start.sh
 bash scripts/status.sh
-bash scripts/export-client.sh
 ```
 
 关键输出：
@@ -226,7 +262,7 @@ bash scripts/export-client.sh
 - Xray 配置：`data/runtime/transport-xray.json`
 - Caddy 配置：`data/runtime/proxy-Caddyfile`
 - 静态站点：`data/runtime/proxy-index.html`
-- 客户端导出：`data/exports/vless-ws-tls.txt`
+- 客户端导出目录：`data/exports/ws-tls/`
 
 部署前检查：
 
@@ -251,6 +287,27 @@ bash scripts/show-env.sh
 bash scripts/show-config.sh
 bash scripts/status.sh
 docker compose -f compose.yaml logs --tail=100 caddy xray
+```
+
+## 导出示例
+
+`ws-tls`：
+
+```bash
+cp .env.example .env
+bash scripts/render-config.sh
+bash scripts/export-client.sh
+find data/exports/ws-tls -maxdepth 1 -type f | sort
+```
+
+`reality`：
+
+```bash
+cp .env.example .env
+# 编辑 .env 中的 PROFILE、PORT、REALITY_SERVER_NAME、REALITY_PUBLIC_KEY、REALITY_SHORT_ID、FLOW
+bash scripts/render-config.sh
+bash scripts/export-client.sh
+find data/exports/reality -maxdepth 1 -type f | sort
 ```
 
 ---

@@ -49,7 +49,7 @@ find "${RUNTIME_DIR}" -maxdepth 1 -type f | sort || true
 
 echo
 echo "[INFO] 导出目录"
-find "${EXPORT_DIR}" -maxdepth 1 -type f | sort || true
+find "${EXPORT_DIR}" -maxdepth 2 -type f | sort || true
 
 echo
 echo "[INFO] 常用排障命令"
@@ -70,5 +70,6 @@ echo "  ls -la ${LOG_DIR}"
 echo
 echo "[INFO] 常见问题定位建议"
 echo "1. 若 TLS 未签发成功，先确认 DOMAIN 是否解析到当前服务器，且 80/443 未被防火墙拦截。"
-echo "2. 若 WebSocket 无法连接，先确认 WS_PATH 与客户端导出链接完全一致。"
-echo "3. 若容器未启动，先运行 bash scripts/show-config.sh 检查渲染后的 Xray/Caddy 配置。"
+echo "2. 若 WebSocket 无法连接，先确认 WS_PATH 与 ws-tls 导出的 clash.yaml / vless.txt 完全一致。"
+echo "3. 若 reality 无法连接，先确认 REALITY_SERVER_NAME、REALITY_PUBLIC_KEY、REALITY_SHORT_ID、FLOW 与导出文件一致。"
+echo "4. 若容器未启动，先运行 bash scripts/show-config.sh 检查渲染后的 Xray/Caddy 配置。"

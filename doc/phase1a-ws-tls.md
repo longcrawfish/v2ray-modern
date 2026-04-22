@@ -157,7 +157,7 @@ bash scripts/status.sh
 - `bash scripts/show-config.sh`
 - 核对 `proxy-Caddyfile` 里的 `WS_PATH`
 - 核对 `transport-xray.json` 里的 `wsSettings.path`
-- 核对 `data/exports/vless-ws-tls.txt` 中的 `path`
+- 核对 `data/exports/ws-tls/vless.txt` 中的 `path`
 
 ### 6. Xray 容器报 `exec: "run": executable file not found`
 
@@ -200,9 +200,14 @@ bash scripts/export-client.sh
 
 会生成：
 
-- `data/exports/vless-ws-tls.txt`
+- `data/exports/ws-tls/clash.yaml`
+- `data/exports/ws-tls/vless.txt`
+- `data/exports/ws-tls/clash-subscription-url.txt`
 
-内容为基础 VLESS URL，便于一键复制。
+其中：
+
+- `clash.yaml` 用于 Clash Verge Rev / ClashX Meta / Mihomo
+- `vless.txt` 用于 v2rayNG 等支持 `vless://` 的客户端
 
 ---
 
