@@ -23,7 +23,7 @@ assert_profile_templates
 transport_dir=$(template_profile_dir transport)
 proxy_dir=$(template_profile_dir proxy)
 
-mkdir -p "${LOG_DIR}/xray"
+mkdir -p "${LOG_DIR}/xray" "${LOG_DIR}/caddy"
 find "${RUNTIME_DIR}" -maxdepth 1 -type f ! -name '.gitkeep' ! -name 'reality-generated.env' -delete
 
 render_template_dir "${core_dir}" "core"

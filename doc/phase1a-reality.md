@@ -24,8 +24,15 @@
 ### 代理层
 
 - 本分支不依赖反向代理层
-- 不需要 Caddy
+- 不需要 Caddy 承担 Reality 主入口
 - 不需要传统 TLS 证书签发流程
+
+### `subscription-caddy`
+
+- 只负责暴露 `data/exports/` 中的 Clash 订阅文件
+- 不参与 Reality 主入口转发
+- 使用独立端口 `SUBSCRIPTION_CADDY_PORT`
+- 配置来源：`data/runtime/proxy-Caddyfile`
 
 ---
 
@@ -33,6 +40,7 @@
 
 - `templates/transport/reality/xray.json.tpl`
 - `templates/transport/reality/client.json.tpl`
+- `templates/proxy/reality/Caddyfile.tpl`
 - `templates/proxy/reality/runtime-note.tpl`
 
 ---
@@ -54,6 +62,8 @@
 | `REALITY_FINGERPRINT` | 客户端指纹，默认可用 `chrome` |
 | `REALITY_SPIDER_X` | Reality spiderX |
 | `REALITY_FLOW` | 通常为 `xtls-rprx-vision` |
+| `SUBSCRIPTION_HOST` | 对外展示的订阅地址主机名，可包含端口 |
+| `SUBSCRIPTION_CADDY_PORT` | 内置订阅 Caddy 监听端口 |
 
 ---
 
@@ -91,10 +101,27 @@ bash scripts/generate-reality-keys.sh
 cp .env.example .env
 bash scripts/preflight-check.sh
 bash scripts/render-config.sh
+bash scripts/export-client.sh
 bash scripts/start.sh
 bash scripts/status.sh
-bash scripts/export-client.sh
 ```
+
+启动完成后可访问：
+
+```text
+${SUBSCRIPTION_SCHEME}://${SUBSCRIPTION_HOST}/sub/reality/clash.yaml
+```
+
+如果订阅域名与 Reality 域名复用，建议采用“同域名不同端口”：
+
+```env
+DOMAIN=reality.example.com
+SERVER=reality.example.com
+SUBSCRIPTION_HOST=reality.example.com:18080
+SUBSCRIPTION_CADDY_PORT=18080
+```
+
+这样不会影响 Reality 的 `443` 直连入口。
 
 ---
 
@@ -102,9 +129,10 @@ bash scripts/export-client.sh
 
 - `v2-reality` 不使用 WebSocket
 - `v2-reality` 不需要 `WS_PATH`
-- `v2-reality` 不依赖 Caddy 或其他反向代理
+- `v2-reality` 不依赖 Caddy 承担主流量反代
 - `v2-reality` 不依赖传统 TLS 证书申请
 - `v2-reality` 的关键材料是 Reality 密钥和目标站点参数
+- `v2-reality` 可额外使用 Caddy 暴露 Clash 订阅静态文件
 
 ---
 

@@ -6,7 +6,7 @@ ${EXPORT_DIR}/clash.yaml
 你可以将该文件通过静态文件服务、Nginx、对象存储或订阅接口暴露为 URL。
 
 示例订阅地址：
-https://${SUBSCRIPTION_HOST}/sub/reality/clash.yaml
+${SUBSCRIPTION_SCHEME}://${SUBSCRIPTION_HOST}/sub/reality/clash.yaml
 
 推荐导入方式：
 - Clash Verge Rev

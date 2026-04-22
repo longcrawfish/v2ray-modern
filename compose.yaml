@@ -29,3 +29,35 @@ services:
       io.v2ray-modern.branch: v2-reality
       io.v2ray-modern.service: xray
       io.v2ray-modern.profile: ${PROFILE}
+
+  subscription-caddy:
+    image: ${SUBSCRIPTION_CADDY_IMAGE:-caddy:2.8-alpine}
+    container_name: v2ray-modern-subscription-caddy
+    restart: unless-stopped
+    env_file:
+      - .env
+    command:
+      - caddy
+      - run
+      - --config
+      - /etc/caddy/Caddyfile
+      - --adapter
+      - caddyfile
+    volumes:
+      - ./data/runtime/proxy-Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/exports:/srv:ro
+      - ./data/logs/caddy:/var/log/caddy
+    ports:
+      - "${SUBSCRIPTION_CADDY_PORT:-18080}:${SUBSCRIPTION_CADDY_PORT:-18080}"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - test -f /etc/caddy/Caddyfile
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    labels:
+      io.v2ray-modern.branch: v2-reality
+      io.v2ray-modern.service: subscription-caddy
+      io.v2ray-modern.profile: ${PROFILE}

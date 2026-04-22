@@ -15,6 +15,7 @@
 cp .env.example .env
 bash scripts/render-config.sh
 bash scripts/export-client.sh
+bash scripts/start.sh
 ```
 
 ---
@@ -124,9 +125,63 @@ data/exports/<profile>/
 
 ---
 
+## 内置 Caddy 订阅服务
+
+在当前 `v2-reality` 分支中，项目会额外启动一个 `subscription-caddy` 服务：
+
+- 只负责暴露 `data/exports/`
+- 不接管 Reality 主入口
+- 不替代 Xray 的 `XRAY_PORT`
+
+关键变量：
+
+- `SUBSCRIPTION_SCHEME`
+- `SUBSCRIPTION_HOST`
+- `SUBSCRIPTION_CADDY_PORT`
+- `SUBSCRIPTION_CADDY_IMAGE`
+
+推荐设置：
+
+```env
+SUBSCRIPTION_SCHEME=http
+SUBSCRIPTION_HOST=sub.example.com:18080
+SUBSCRIPTION_CADDY_PORT=18080
+SUBSCRIPTION_CADDY_IMAGE=caddy:2.8-alpine
+```
+
+如果希望与 Reality 复用同一个域名，也可以这样配置：
+
+```env
+DOMAIN=reality.example.com
+SERVER=reality.example.com
+SUBSCRIPTION_SCHEME=http
+SUBSCRIPTION_HOST=reality.example.com:18080
+SUBSCRIPTION_CADDY_PORT=18080
+```
+
+效果是：
+
+- Reality 主连接仍走 `reality.example.com:443`
+- 订阅地址走 `http://reality.example.com:18080/sub/reality/clash.yaml`
+
+注意：
+
+- 这是同域名不同端口，不是同域名同 `443`
+- `SUBSCRIPTION_HOST` 需要包含端口
+- `SUBSCRIPTION_CADDY_PORT` 不能与 `XRAY_PORT` 相同
+
+启动后可直接访问：
+
+```text
+http://sub.example.com:18080/sub/reality/clash.yaml
+http://sub.example.com:18080/sub/ws-tls/clash.yaml
+```
+
+---
+
 ## 订阅 URL 托管
 
-项目不会自动发布公网订阅，只会生成说明文件：
+当前 `v2-reality` 分支已内置 Caddy 静态订阅服务，同时仍会生成说明文件：
 
 ```text
 data/exports/<profile>/clash-subscription-url.txt
@@ -134,6 +189,7 @@ data/exports/<profile>/clash-subscription-url.txt
 
 常见托管方式：
 
+- 项目内置 `subscription-caddy`
 - Nginx 静态文件
 - 对象存储静态托管
 - 自建订阅接口
@@ -142,8 +198,8 @@ data/exports/<profile>/clash-subscription-url.txt
 示例：
 
 ```text
-https://sub.example.com/sub/ws-tls/clash.yaml
-https://sub.example.com/sub/reality/clash.yaml
+http://sub.example.com:18080/sub/ws-tls/clash.yaml
+http://sub.example.com:18080/sub/reality/clash.yaml
 ```
 
 ---
