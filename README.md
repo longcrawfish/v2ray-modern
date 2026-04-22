@@ -213,6 +213,18 @@ bash scripts/export-client.sh
    - 用于 v2rayNG 等支持 Xray/VLESS 的客户端
    - 可直接复制导入
 
+在 `v2-ws-tls` 分支中，项目内置 Caddy 会直接暴露：
+
+```text
+https://<DOMAIN>/sub/ws-tls/clash.yaml
+```
+
+如果希望导出的说明文件与实际可访问地址保持一致，建议：
+
+```env
+SUBSCRIPTION_HOST=${DOMAIN}
+```
+
 导出目录约定：
 
 ```text
@@ -257,6 +269,12 @@ bash scripts/start.sh
 bash scripts/status.sh
 ```
 
+若 `SUBSCRIPTION_HOST=${DOMAIN}`，启动后可直接在 Clash / Mihomo 中导入：
+
+```text
+https://${DOMAIN}/sub/ws-tls/clash.yaml
+```
+
 关键输出：
 
 - Xray 配置：`data/runtime/transport-xray.json`
@@ -295,8 +313,10 @@ docker compose -f compose.yaml logs --tail=100 caddy xray
 
 ```bash
 cp .env.example .env
+# 建议将 SUBSCRIPTION_HOST 配置为与 DOMAIN 相同
 bash scripts/render-config.sh
 bash scripts/export-client.sh
+bash scripts/start.sh
 find data/exports/ws-tls -maxdepth 1 -type f | sort
 ```
 

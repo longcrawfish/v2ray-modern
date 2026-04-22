@@ -39,6 +39,7 @@ services:
     volumes:
       - ./data/runtime/proxy-Caddyfile:/etc/caddy/Caddyfile:ro
       - ./data/runtime/proxy-index.html:/srv/index.html:ro
+      - ./data/exports:/exports:ro
       - ./data/logs/caddy:/var/log/caddy
       - ./data/logs/caddy/data:/data
       - ./data/logs/caddy/config:/config

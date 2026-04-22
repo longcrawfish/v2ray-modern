@@ -23,6 +23,12 @@ bash scripts/render-config.sh
 bash scripts/export-client.sh
 ```
 
+在 `v2-ws-tls` 分支中，项目内置 Caddy 会直接把 `data/exports/` 暴露到 `/sub/*`，因此可直接使用：
+
+```text
+https://<DOMAIN>/sub/ws-tls/clash.yaml
+```
+
 ---
 
 ## 导出目录
@@ -120,7 +126,18 @@ data/exports/<profile>/
 
 ## 订阅 URL 托管
 
-项目不会自动生成公网订阅链接，只会生成说明文件：
+`ws-tls` 分支默认可直接复用项目内置 Caddy 的站点入口：
+
+```text
+https://<DOMAIN>/sub/ws-tls/clash.yaml
+```
+
+建议：
+
+- `SUBSCRIPTION_HOST` 与 `DOMAIN` 保持一致
+- 这样 `clash-subscription-url.txt` 中的地址会与实际 Caddy 路由一致
+
+如果你不复用当前站点入口，项目仍会生成说明文件：
 
 ```text
 data/exports/<profile>/clash-subscription-url.txt
@@ -128,6 +145,7 @@ data/exports/<profile>/clash-subscription-url.txt
 
 常见托管方式：
 
+- 项目内置 Caddy（`ws-tls`）
 - Nginx 静态文件
 - 对象存储静态托管
 - 自建订阅接口
@@ -136,7 +154,7 @@ data/exports/<profile>/clash-subscription-url.txt
 示例：
 
 ```text
-https://sub.example.com/sub/ws-tls/clash.yaml
+https://example.com/sub/ws-tls/clash.yaml
 https://sub.example.com/sub/reality/clash.yaml
 ```
 
@@ -163,8 +181,10 @@ v2rayNG：
 
 ```bash
 cp .env.example .env
+# 建议设置 SUBSCRIPTION_HOST=DOMAIN
 bash scripts/render-config.sh
 bash scripts/export-client.sh
+bash scripts/start.sh
 find data/exports/ws-tls -maxdepth 1 -type f | sort
 ```
 

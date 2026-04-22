@@ -7,6 +7,11 @@
 {{DOMAIN}} {
   encode zstd gzip
 
+  handle_path /sub/* {
+    root * /exports
+    file_server
+  }
+
   @ws {
     path {{WS_PATH}}
     header Connection *Upgrade*

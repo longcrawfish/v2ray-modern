@@ -26,6 +26,7 @@
 - 负责 80/443 入口
 - 负责自动 TLS
 - 负责将 `WS_PATH` 请求反代到 `xray`
+- 负责将 `/sub/*` 暴露为 Clash 订阅静态文件
 - 配置来源：`data/runtime/proxy-Caddyfile`
 - 日志目录：`data/logs/caddy/`
 
@@ -55,6 +56,7 @@
 | `TLS_CA` | ACME CA 地址 |
 | `CADDY_HTTP_PORT` | 外部 HTTP 端口 |
 | `CADDY_HTTPS_PORT` | 外部 HTTPS 端口 |
+| `SUBSCRIPTION_HOST` | 订阅说明中使用的域名，若复用内置 Caddy 建议与 `DOMAIN` 一致 |
 
 ---
 
@@ -72,6 +74,12 @@ bash scripts/status.sh
 1. 参数与端口检查
 2. 配置模板渲染
 3. `docker compose up -d`
+
+若 `SUBSCRIPTION_HOST=${DOMAIN}`，启动完成后可直接导入：
+
+```text
+https://${DOMAIN}/sub/ws-tls/clash.yaml
+```
 
 ---
 
@@ -104,6 +112,7 @@ bash scripts/status.sh
 - 配置文件已渲染到 `data/runtime/`
 - `xray` / `caddy` 的 volume 挂载路径与配置路径一致
 - VLESS 导出链接与 `.env` 中的 `DOMAIN`、`WS_PATH`、`UUID` 一致
+- `https://${DOMAIN}/sub/ws-tls/clash.yaml` 可由 Caddy 直接访问
 
 ---
 
@@ -208,6 +217,7 @@ bash scripts/export-client.sh
 
 - `clash.yaml` 用于 Clash Verge Rev / ClashX Meta / Mihomo
 - `vless.txt` 用于 v2rayNG 等支持 `vless://` 的客户端
+- 若 `SUBSCRIPTION_HOST=${DOMAIN}`，可直接通过 `https://${DOMAIN}/sub/ws-tls/clash.yaml` 导入
 
 ---
 
