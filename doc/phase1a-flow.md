@@ -42,8 +42,7 @@ status
 ### 5. 状态与导出
 
 - `status.sh` 输出状态、路径、日志和排障提示
-- `export-client.sh` 输出 `clash.yaml`、`vless.txt` 和订阅说明
-- `subscription-caddy` 暴露 `/sub/<profile>/clash.yaml`
+- `export-client.sh` 输出客户端导出文件
 
 ---
 
@@ -90,8 +89,6 @@ xray reality runtime
 ↓
 direct reality transport
 ↓
-subscription caddy
-↓
 client export
 ```
 
@@ -118,7 +115,6 @@ start profile-specific services
 ```text
 data/exports/<profile>/
 ├── clash.yaml
-├── clash-subscription-url.txt
 └── vless.txt
 ```
 

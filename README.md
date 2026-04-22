@@ -38,7 +38,7 @@
 - `refactor-base` 不引入协议细节
 - transport-specific logic 只进入对应分支
 - `v2-reality` 不继承 `v2-ws-tls` 的 `ws path` 和证书依赖
-- `v2-reality` 中的 Caddy 仅用于静态订阅导出，不参与 Reality 主入口转发
+- `v2-reality` 不内置 HTTP 订阅分发服务
 
 ---
 
@@ -77,8 +77,8 @@
 `v2-reality` 分支补充约定：
 
 - `xray` 继续独占 `XRAY_PORT`
-- `subscription-caddy` 只负责暴露 `data/exports/` 下的 Clash 订阅文件
-- `subscription-caddy` 使用独立端口 `SUBSCRIPTION_CADDY_PORT`
+- `data/exports/reality/clash.yaml` 用于本地导入 Clash 类客户端
+- 不暴露项目内置的 HTTP 订阅地址
 
 ---
 ## 前期准备
@@ -127,17 +127,9 @@ bash scripts/status.sh
 
 - `preflight-check.sh` 负责环境和参数检查
 - `render-config.sh` 负责按 `PROFILE` 渲染模板
-- `export-client.sh` 负责导出客户端 YAML、订阅说明和 `vless://` 链接
+- `export-client.sh` 负责导出客户端 YAML 和 `vless://` 链接
 - `start.sh` 负责标准启动
 - `status.sh` 负责状态与排障信息输出
-
-如果你需要直接由项目内 Caddy 提供 Clash 订阅 URL，推荐流程是：
-
-```bash
-bash scripts/render-config.sh
-bash scripts/export-client.sh
-bash scripts/start.sh
-```
 
 ---
 
@@ -208,7 +200,7 @@ bash scripts/start.sh
 
 ### export
 
-位于 `data/exports/` 的导出结果，例如 Clash YAML、订阅说明和 `vless://` 链接。
+位于 `data/exports/` 的导出结果，例如 Clash YAML 和 `vless://` 链接。
 
 ## 客户端导出说明
 
@@ -216,45 +208,17 @@ bash scripts/start.sh
 
 1. Clash / Mihomo YAML
    - 用于 Clash Verge Rev、ClashX Meta、Mihomo 等客户端
-   - 推荐通过 URL 方式导入 `clash.yaml`
+   - `v2-reality` 推荐本地导入 `clash.yaml`
 
 2. `vless://` 链接
    - 用于 v2rayNG 等支持 Xray/VLESS 的客户端
    - 可直接复制导入
-
-在 `v2-reality` 分支中，项目会额外启动一个 `subscription-caddy` 容器，把 `data/exports/` 暴露为静态订阅地址。
-默认示例：
-
-```text
-http://sub.example.com:18080/sub/reality/clash.yaml
-http://sub.example.com:18080/sub/ws-tls/clash.yaml
-```
-
-如果你想复用同一个域名，也可以使用“同域名不同端口”：
-
-```env
-DOMAIN=reality.example.com
-SERVER=reality.example.com
-SUBSCRIPTION_HOST=reality.example.com:18080
-SUBSCRIPTION_CADDY_PORT=18080
-```
-
-此时：
-
-- Reality 连接走 `reality.example.com:443`
-- Clash 订阅走 `http://reality.example.com:18080/sub/reality/clash.yaml`
-
-注意：
-
-- `SUBSCRIPTION_HOST` 需要显式带上端口
-- `SUBSCRIPTION_CADDY_PORT` 不能与 `XRAY_PORT` 相同
 
 导出目录约定：
 
 ```text
 data/exports/<profile>/
 ├── clash.yaml
-├── clash-subscription-url.txt
 └── vless.txt
 ```
 
@@ -263,6 +227,7 @@ data/exports/<profile>/
 - `ws-tls` 导出 `network: ws`、`ws-opts.path`、`Host`、`servername`
 - `reality` 导出 `network: tcp`、`flow`、`reality-opts.public-key`、`reality-opts.short-id`
 - `reality` 不会生成 `ws-opts`
+- `v2-reality` 不再内置 HTTP Clash 订阅地址
 
 完整说明见 [doc/client-export.md](doc/client-export.md)。
 
@@ -283,9 +248,6 @@ cp .env.example .env
 # SNI=example.com
 # HOST=example.com
 # CLIENT_FINGERPRINT=chrome
-# SUBSCRIPTION_SCHEME=http
-# SUBSCRIPTION_HOST=sub.example.com:18080
-# SUBSCRIPTION_CADDY_PORT=18080
 bash scripts/render-config.sh
 bash scripts/export-client.sh
 find data/exports/ws-tls -maxdepth 1 -type f | sort
@@ -304,9 +266,6 @@ cp .env.example .env
 # PORT=443
 # CLIENT_FINGERPRINT=chrome
 # REALITY_SERVER_NAME=www.cloudflare.com
-# SUBSCRIPTION_SCHEME=http
-# SUBSCRIPTION_HOST=example.com:18080
-# SUBSCRIPTION_CADDY_PORT=18080
 # REALITY_PUBLIC_KEY=<your-public-key>
 # REALITY_SHORT_ID=0123abcd
 # FLOW=xtls-rprx-vision

@@ -27,20 +27,12 @@
 - 不需要 Caddy 承担 Reality 主入口
 - 不需要传统 TLS 证书签发流程
 
-### `subscription-caddy`
-
-- 只负责暴露 `data/exports/` 中的 Clash 订阅文件
-- 不参与 Reality 主入口转发
-- 使用独立端口 `SUBSCRIPTION_CADDY_PORT`
-- 配置来源：`data/runtime/proxy-Caddyfile`
-
 ---
 
 ## 模板文件
 
 - `templates/transport/reality/xray.json.tpl`
 - `templates/transport/reality/client.json.tpl`
-- `templates/proxy/reality/Caddyfile.tpl`
 - `templates/proxy/reality/runtime-note.tpl`
 
 ---
@@ -62,8 +54,6 @@
 | `REALITY_FINGERPRINT` | 客户端指纹，默认可用 `chrome` |
 | `REALITY_SPIDER_X` | Reality spiderX |
 | `REALITY_FLOW` | 通常为 `xtls-rprx-vision` |
-| `SUBSCRIPTION_HOST` | 对外展示的订阅地址主机名，可包含端口 |
-| `SUBSCRIPTION_CADDY_PORT` | 内置订阅 Caddy 监听端口 |
 
 ---
 
@@ -106,22 +96,17 @@ bash scripts/start.sh
 bash scripts/status.sh
 ```
 
-启动完成后可访问：
+启动完成后，客户端导出文件位于：
 
 ```text
-${SUBSCRIPTION_SCHEME}://${SUBSCRIPTION_HOST}/sub/reality/clash.yaml
+data/exports/reality/clash.yaml
+data/exports/reality/vless.txt
 ```
 
-如果订阅域名与 Reality 域名复用，建议采用“同域名不同端口”：
+推荐：
 
-```env
-DOMAIN=reality.example.com
-SERVER=reality.example.com
-SUBSCRIPTION_HOST=reality.example.com:18080
-SUBSCRIPTION_CADDY_PORT=18080
-```
-
-这样不会影响 Reality 的 `443` 直连入口。
+- Clash Verge Rev / ClashX Meta / Mihomo 本地导入 `clash.yaml`
+- v2rayNG 等客户端导入 `vless.txt`
 
 ---
 
@@ -132,7 +117,7 @@ SUBSCRIPTION_CADDY_PORT=18080
 - `v2-reality` 不依赖 Caddy 承担主流量反代
 - `v2-reality` 不依赖传统 TLS 证书申请
 - `v2-reality` 的关键材料是 Reality 密钥和目标站点参数
-- `v2-reality` 可额外使用 Caddy 暴露 Clash 订阅静态文件
+- `v2-reality` 默认不内置 HTTP Clash 订阅服务
 
 ---
 

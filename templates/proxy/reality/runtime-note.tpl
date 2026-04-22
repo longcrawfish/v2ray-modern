@@ -1,6 +1,6 @@
 profile={{PROFILE}}
-proxy_required=subscription_only
-reason=reality_direct_transport_with_subscription_caddy
+proxy_required=no
+reason=reality_direct_transport_without_http_subscription
 
-# Reality transport does not require a reverse proxy for the main inbound.
-# The generated Caddyfile is only used to expose /sub/* static subscription files from data/exports/.
+# Reality transport does not require a reverse proxy.
+# Client exports stay in data/exports/ and are intended for local import.

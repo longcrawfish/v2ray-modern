@@ -27,7 +27,6 @@ bash scripts/start.sh
 ```text
 data/exports/<profile>/
 ├── clash.yaml
-├── clash-subscription-url.txt
 └── vless.txt
 ```
 
@@ -35,8 +34,6 @@ data/exports/<profile>/
 
 - `clash.yaml`
   - 用于 Clash Verge Rev、ClashX Meta、Mihomo
-- `clash-subscription-url.txt`
-  - 说明如何把本地 `clash.yaml` 托管成公网订阅 URL
 - `vless.txt`
   - 用于 v2rayNG 等支持 `vless://` 的客户端
 
@@ -102,7 +99,6 @@ data/exports/<profile>/
 - `PORT`
 - `UUID`
 - `CLIENT_FINGERPRINT`
-- `SUBSCRIPTION_HOST`
 
 `ws-tls` 额外变量：
 
@@ -125,82 +121,21 @@ data/exports/<profile>/
 
 ---
 
-## 内置 Caddy 订阅服务
+## `v2-reality` 导出约定
 
-在当前 `v2-reality` 分支中，项目会额外启动一个 `subscription-caddy` 服务：
+在当前 `v2-reality` 分支中：
 
-- 只负责暴露 `data/exports/`
-- 不接管 Reality 主入口
-- 不替代 Xray 的 `XRAY_PORT`
+- 保留 `data/exports/reality/clash.yaml`
+- 保留 `data/exports/reality/vless.txt`
+- 不再内置 HTTP Clash 订阅地址
+- 不再生成 `clash-subscription-url.txt`
 
-关键变量：
+这样做的目的是避免把 Reality 节点材料通过项目内置的明文 HTTP 订阅链路暴露出去。
 
-- `SUBSCRIPTION_SCHEME`
-- `SUBSCRIPTION_HOST`
-- `SUBSCRIPTION_CADDY_PORT`
-- `SUBSCRIPTION_CADDY_IMAGE`
+如果需要继续给 Clash 类客户端使用，推荐方式是：
 
-推荐设置：
-
-```env
-SUBSCRIPTION_SCHEME=http
-SUBSCRIPTION_HOST=sub.example.com:18080
-SUBSCRIPTION_CADDY_PORT=18080
-SUBSCRIPTION_CADDY_IMAGE=caddy:2.8-alpine
-```
-
-如果希望与 Reality 复用同一个域名，也可以这样配置：
-
-```env
-DOMAIN=reality.example.com
-SERVER=reality.example.com
-SUBSCRIPTION_SCHEME=http
-SUBSCRIPTION_HOST=reality.example.com:18080
-SUBSCRIPTION_CADDY_PORT=18080
-```
-
-效果是：
-
-- Reality 主连接仍走 `reality.example.com:443`
-- 订阅地址走 `http://reality.example.com:18080/sub/reality/clash.yaml`
-
-注意：
-
-- 这是同域名不同端口，不是同域名同 `443`
-- `SUBSCRIPTION_HOST` 需要包含端口
-- `SUBSCRIPTION_CADDY_PORT` 不能与 `XRAY_PORT` 相同
-
-启动后可直接访问：
-
-```text
-http://sub.example.com:18080/sub/reality/clash.yaml
-http://sub.example.com:18080/sub/ws-tls/clash.yaml
-```
-
----
-
-## 订阅 URL 托管
-
-当前 `v2-reality` 分支已内置 Caddy 静态订阅服务，同时仍会生成说明文件：
-
-```text
-data/exports/<profile>/clash-subscription-url.txt
-```
-
-常见托管方式：
-
-- 项目内置 `subscription-caddy`
-- Nginx 静态文件
-- 对象存储静态托管
-- 自建订阅接口
-- 任意可公开访问的静态文件服务
-
-示例：
-
-```text
-http://sub.example.com:18080/sub/ws-tls/clash.yaml
-http://sub.example.com:18080/sub/reality/clash.yaml
-```
+- 直接本地导入 `clash.yaml`
+- 或在你自己的 HTTPS 静态托管/订阅服务上发布该文件
 
 ---
 
@@ -209,7 +144,7 @@ http://sub.example.com:18080/sub/reality/clash.yaml
 Clash Verge Rev / ClashX Meta / Mihomo：
 
 1. 本地导入 `clash.yaml`
-2. 或将其托管为 URL 后按订阅方式导入
+2. 如需远程更新，请自行托管为 HTTPS URL 后按订阅方式导入
 
 v2rayNG：
 

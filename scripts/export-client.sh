@@ -5,9 +5,10 @@ set -eu
 # shellcheck disable=SC1091
 . "$(CDPATH= cd -- "$(dirname "$0")" && pwd)/lib/common.sh"
 
-common_template_vars='PROFILE NODE_NAME NODE_NAME_URLENCODED SERVER PORT UUID CLIENT_FINGERPRINT EXPORT_DIR SUBSCRIPTION_SCHEME SUBSCRIPTION_HOST'
-ws_template_vars='PROFILE NODE_NAME NODE_NAME_URLENCODED SERVER PORT UUID CLIENT_FINGERPRINT EXPORT_DIR SUBSCRIPTION_SCHEME SUBSCRIPTION_HOST SNI HOST WS_PATH WS_PATH_URLENCODED'
-reality_template_vars='PROFILE NODE_NAME NODE_NAME_URLENCODED SERVER PORT UUID CLIENT_FINGERPRINT EXPORT_DIR SUBSCRIPTION_SCHEME SUBSCRIPTION_HOST REALITY_SERVER_NAME REALITY_PUBLIC_KEY REALITY_SHORT_ID FLOW'
+common_template_vars='PROFILE NODE_NAME NODE_NAME_URLENCODED SERVER PORT UUID CLIENT_FINGERPRINT EXPORT_DIR'
+subscription_template_vars='PROFILE NODE_NAME NODE_NAME_URLENCODED SERVER PORT UUID CLIENT_FINGERPRINT EXPORT_DIR SUBSCRIPTION_SCHEME SUBSCRIPTION_HOST'
+ws_template_vars='PROFILE NODE_NAME NODE_NAME_URLENCODED SERVER PORT UUID CLIENT_FINGERPRINT EXPORT_DIR SNI HOST WS_PATH WS_PATH_URLENCODED'
+reality_template_vars='PROFILE NODE_NAME NODE_NAME_URLENCODED SERVER PORT UUID CLIENT_FINGERPRINT EXPORT_DIR REALITY_SERVER_NAME REALITY_PUBLIC_KEY REALITY_SHORT_ID FLOW'
 
 set_default_if_empty() {
   target_var=$1
@@ -30,10 +31,8 @@ resolve_common_export_vars() {
   require_non_empty "UUID" "${UUID}"
 
   set_default_if_empty "SERVER" "${DOMAIN}"
-  set_default_if_empty "SUBSCRIPTION_HOST" "${DOMAIN}"
 
   require_non_empty "SERVER" "${SERVER}"
-  require_non_empty "SUBSCRIPTION_HOST" "${SUBSCRIPTION_HOST}"
   require_non_empty "CLIENT_FINGERPRINT" "${CLIENT_FINGERPRINT}"
 
   NODE_NAME_URLENCODED=$(urlencode_utf8 "${NODE_NAME}")
@@ -72,15 +71,19 @@ render_export_files() {
 
   require_template_file "${clash_template}"
   require_template_file "${vless_template}"
-  require_template_file "${subscription_template}"
 
   render_dollar_template_file "${clash_template}" "${EXPORT_DIR}/clash.yaml" ${template_vars}
   render_dollar_template_file "${vless_template}" "${EXPORT_DIR}/vless.txt" ${template_vars}
-  render_dollar_template_file "${subscription_template}" "${EXPORT_DIR}/clash-subscription-url.txt" ${common_template_vars}
 
   assert_no_dollar_placeholders "${EXPORT_DIR}/clash.yaml"
   assert_no_dollar_placeholders "${EXPORT_DIR}/vless.txt"
-  assert_no_dollar_placeholders "${EXPORT_DIR}/clash-subscription-url.txt"
+
+  if [ -f "${subscription_template}" ]; then
+    set_default_if_empty "SUBSCRIPTION_HOST" "${DOMAIN}"
+    require_non_empty "SUBSCRIPTION_HOST" "${SUBSCRIPTION_HOST}"
+    render_dollar_template_file "${subscription_template}" "${EXPORT_DIR}/clash-subscription-url.txt" ${subscription_template_vars}
+    assert_no_dollar_placeholders "${EXPORT_DIR}/clash-subscription-url.txt"
+  fi
 }
 
 ensure_directories

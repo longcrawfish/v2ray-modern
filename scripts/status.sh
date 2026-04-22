@@ -13,7 +13,6 @@ fi
 
 echo "[INFO] 服务信息"
 echo "primary_service=${SERVICE_NAME}"
-echo "subscription_service=${SUBSCRIPTION_SERVICE_NAME}"
 echo "compose=${COMPOSE_CMD}"
 echo
 
@@ -37,14 +36,12 @@ find "${EXPORT_DIR}" -maxdepth 2 -type f | sort || true
 echo
 echo "[INFO] 常用排障命令"
 echo "查看 compose 日志:"
-echo "  ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs --tail=100 ${SERVICE_NAME} ${SUBSCRIPTION_SERVICE_NAME}"
+echo "  ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs --tail=100 ${SERVICE_NAME}"
 echo "查看实时日志:"
-echo "  ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs -f ${SERVICE_NAME} ${SUBSCRIPTION_SERVICE_NAME}"
+echo "  ${COMPOSE_CMD} -f ${COMPOSE_FILE} logs -f ${SERVICE_NAME}"
 echo "进入运行目录核对渲染文件:"
 echo "  ls -la ${RUNTIME_DIR}"
 echo "检查导出目录:"
 echo "  ls -la ${EXPORT_DIR}"
 echo "检查日志目录:"
 echo "  ls -la ${LOG_DIR}"
-echo "测试订阅地址:"
-echo "  curl -I ${SUBSCRIPTION_SCHEME}://${SUBSCRIPTION_HOST}/sub/${PROFILE}/clash.yaml"

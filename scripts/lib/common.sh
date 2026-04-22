@@ -11,14 +11,13 @@ TEMPLATE_DIR="${ROOT_DIR}/templates"
 EXPORT_TEMPLATE_DIR="${TEMPLATE_DIR}/export"
 COMPOSE_FILE="${ROOT_DIR}/compose.yaml"
 SERVICE_NAME="xray"
-SUBSCRIPTION_SERVICE_NAME="subscription-caddy"
 GENERATED_REALITY_ENV="${RUNTIME_DIR}/reality-generated.env"
 RUNTIME_ENV_FILE="${RUNTIME_DIR}/core-base.env"
 
 SUPPORTED_PROFILES="ws-tls reality"
 
 ensure_directories() {
-  mkdir -p "${RUNTIME_DIR}" "${EXPORT_DIR}" "${LOG_DIR}" "${LOG_DIR}/caddy" "${LOG_DIR}/xray"
+  mkdir -p "${RUNTIME_DIR}" "${EXPORT_DIR}" "${LOG_DIR}" "${LOG_DIR}/xray"
 }
 
 log_info() {
@@ -318,11 +317,6 @@ validate_base_env() {
   validate_domain
   validate_uuid_if_present
   validate_numeric_port "XRAY_PORT" "${XRAY_PORT}"
-  validate_numeric_port "SUBSCRIPTION_CADDY_PORT" "${SUBSCRIPTION_CADDY_PORT}"
-
-  if [ "${XRAY_PORT}" = "${SUBSCRIPTION_CADDY_PORT}" ]; then
-    fail "SUBSCRIPTION_CADDY_PORT 不能与 XRAY_PORT 相同。"
-  fi
 
   case "${PROFILE}" in
     ws-tls)
